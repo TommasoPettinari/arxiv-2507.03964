@@ -30,12 +30,14 @@ ax1 = plt.subplot(1,2,1)
 plt.ylabel(r'$|v^{\text{Stokes}}|$',fontsize=9)
 plt.xlabel(r'$r$',fontsize=9)
 ax1.set_ylim([0.0, 0.52])
+ax1.set_xlim([-7.2,0])
 plt.axvspan(-2.0, 2.0, facecolor='#2ca02c', alpha=0.5)
 plt.axhline(y=0.45, linewidth=2, color='#d62728')
 ax2 = plt.subplot(1,2,2)
 plt.ylabel(r'$|v^{\text{hyd}}|$',fontsize=9)
 plt.xlabel(r'$r$',fontsize=9)
 ax2.set_ylim([0.0, 0.52])
+ax2.set_xlim([0,6.5])
 plt.axvspan(-2.1, 2, facecolor='#2ca02c', alpha=0.5)
 plt.axhline(y=0.45, linewidth=2, color='#d62728')
 plt.axhline(y=0.015, linewidth=2, color='#d62728', linestyle='--')
@@ -49,9 +51,14 @@ for line in lines:
     obs = line.split()
     v_r_PIV.append(float(obs[0]))
     
-ax1.plot(xlin, v_r_stokes)
+mean_v_r_PIV = [(v_r_PIV[44 - i] + v_r_PIV[44 + i])/2 for i in range(45)]
+error_v_r_PIV = [np.abs(v_r_PIV[44- i] - mean_v_r_PIV[i]) for i in range(45)]
+    
+ax1.plot(xlin, v_r_stokes, color='k')
 
-ax2.plot(positions, v_r_PIV)
+ax2.plot(positions[44:89], mean_v_r_PIV, color='k')
+ax2.fill_between(positions[44:89], np.array(mean_v_r_PIV) - np.array(error_v_r_PIV), np.array(mean_v_r_PIV) + np.array(error_v_r_PIV), color='b', alpha=0.3)
+
 
 
 plt.show()
