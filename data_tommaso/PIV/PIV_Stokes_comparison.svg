@@ -24,9 +24,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="px"
-     inkscape:zoom="2"
-     inkscape:cx="389.5"
-     inkscape:cy="725.25"
+     inkscape:zoom="0.70710678"
+     inkscape:cx="482.24682"
+     inkscape:cy="717.71338"
      inkscape:window-width="1920"
      inkscape:window-height="974"
      inkscape:window-x="-11"
@@ -4960,7 +4960,7 @@
          inkscape:box3dsidetype="3"
          d="m 34.402456,150.47884 11.132992,14.65234 0,74.69679 -11.132992,-43.41475 z"
          points="45.535448,165.13118 45.535448,239.82797 34.402456,196.41322 34.402456,150.47884 " /></g><path
-       style="opacity:1;fill:#63ff67;fill-opacity:0.29577464;fill-rule:nonzero;stroke:#18d667;stroke-width:0.56707945;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0.79074448"
+       style="opacity:1;fill:#62cfb3;fill-opacity:0.47887328;fill-rule:nonzero;stroke:#18d667;stroke-width:0.56707945;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0.79074448"
        d="m 39.295114,157.05478 c 8.275833,-0.48948 24.229267,-1.43305 42.518343,-2.51478 -0.03534,16.61155 -0.07471,35.11352 -0.111615,52.45874 -7.466917,1.15866 -14.66224,2.27518 -21.251476,3.29764 -6.562979,1.0184 -13.727222,2.13009 -21.162223,3.28379 0.100058,-18.63188 0.206759,-38.50071 0.304307,-56.66519 a 0.28353951,0.28353949 39.072959 0 0 -0.0064,-0.0613 c -0.01314,-0.061 -0.02461,-0.11418 -0.03054,-0.14172 z m -0.293917,-0.22331 c 0.0049,0.0229 0.01367,0.0635 0.02402,0.11144 -0.09808,18.26427 -0.20541,38.24962 -0.305927,56.96695 a 0.2835395,0.2835395 85.741451 0 0 0.327012,0.28171 c 7.552565,-1.17195 14.83135,-2.30142 21.491022,-3.33481 6.659672,-1.0334 13.938457,-2.16287 21.491022,-3.33481 a 0.2835395,0.2835395 85.650823 0 0 0.240062,-0.27959 c 0.03705,-17.41516 0.07662,-36.01079 0.112772,-53.0026 a 0.2835395,0.2835395 88.368522 0 0 -0.30028,-0.28364 c -18.414894,1.08916 -34.498073,2.04041 -42.819264,2.53258 z"
        id="path205"
        inkscape:path-effect="#path-effect205"
@@ -4980,4 +4980,5 @@
        x="30.802721"
        y="179.7085"
        clip-path="url(#clipPath205)"
-       transform="translate(11.728234,-10.568299)" /></g></svg>
+       transform="translate(11.728234,-10.568299)"
+       style="stroke-width:1.00012193;stroke-dasharray:none" /></g></svg>
