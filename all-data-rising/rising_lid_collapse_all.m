@@ -258,17 +258,11 @@ hs_pix2m = 100/520; % the calibration is 500 pixels for 100mm.
 
 figure(1)
 
-%load("examplecreep.mat")
-
-
-
 %subplot(2,2,[1 4])
-
 %pos2 = [0.05 0.08 0.9 0.85];
 %subplot('Position',pos2)
 
 % first plot data from the current rising sphere data in black triangles
-%maskex = [37,52,54]; % option 1: select the data sets that take the same amount of time
 % select the data sets that are pairs of lid & no-lid:
 % 2 & 24
 % 3 & 25
@@ -277,8 +271,9 @@ figure(1)
 % 6 % 28
 % 7 & 29
 % 8 & 30
-maskex = 24; %[24,30]; %,26,27,28]; 
-%maskex = find(lidonarr == 0);
+
+maskex = 26; %the hist12 example Tom selected
+%maskex = find(lidonarr == 0); % if all data needs to be displayed
 
 for i=1:1:length(maskex)
     
@@ -306,95 +301,25 @@ for i=1:1:length(maskex)
 end
 
 
-%  then plot data from the old PRL sinking sphere data in red circles;
-%  clearly delta^2 works better here
-%  note that the old data were in minutes, not seconds  
-
-% for i=1:1:3
-% 
-%     scatter(60*timearr_ex(i,:),displarr_ex(i,:)/max(displarr_ex(i,:)),'or')
-%     hold on
-%     plot(60*timearr_ex(i,:),displarr_ex(i,:)/max(displarr_ex(i,:)),'-r')
-% 
-% end
-
-
 box on
 xlabel('t [sec]')
 ylabel('\delta [mm]')
 text(2500,10,'(a)','FontSize',18)
 xlim([0 300])
-%ylim([0, 1])
+ylim([0, 110])
 ax=gca;
 ax.FontSize = 14;
 
-
-% now do sq scale
-% subplot 224
-% 
-% %maskex = find(lidonarr == 0);
-% maskex = maskex + 22; % select the ones with lid
-% 
-% 
-% for i=1:1:length(maskex)
-% 
-%     scatter(timearr(maskex(i),:),(displarr(maskex(i),:)).^2, '^k')
-%     hold on
-%     plot(timearr(maskex(i),:),(displarr(maskex(i),:)).^2, '-.k')
-%     fprintf('lidstress = %d \n', buoyarr(maskex(i)))
-%     fprintf('lidstress = %d \n', lidonarr(maskex(i)))
-% 
-% end
-% 
-% %  then plot data from the same stress runs but then with a lid
-% %maskex = find(lidonarr == 1);
-% 
-% maskex = maskex - 22; % select the ones with lid
-% 
-% 
-% for i=1:1:length(maskex)
-% 
-%     scatter(timearr(maskex(i),:),displarr(maskex(i),:).^2, 'ob')
-%     hold on
-%     plot(timearr(maskex(i),:),displarr(maskex(i),:).^2, '-.b')
-%     fprintf('lidstress = %d \n', buoyarr(maskex(i)))
-%     fprintf('lidstress = %d \n', lidonarr(maskex(i)))
-% 
-% end
-
-%  then plot data from the old PRL sinking sphere data in red circles;
-%  clearly delta^2 works better here
-%  note that the old data were in minutes, not seconds  
-
-% for i=1:1:3
-% 
-%     scatter(60*timearr_ex(i,:),displarr_ex(i,:)/max(displarr_ex(i,:)),'or')
-%     hold on
-%     plot(60*timearr_ex(i,:),displarr_ex(i,:)/max(displarr_ex(i,:)),'-r')
-% 
-% end
-
-
-% box on
-% xlabel('t [sec]')
-% ylabel('\delta^2 [mm^2]')
-% text(2500,1000,'(b)','FontSize',18)
-% xlim([0 3000])
-% %ylim([0, 1])
-% ax=gca;
-% ax.FontSize = 14;
-% hold off
-
-tmp = importdata('appar.jpg');
+%tmp = importdata('appar.jpg');
 
 %pos1 = [0.05 0.08 0.4 0.85];
 %subplot('Position',pos1)
 
-ax1 = axes('Position',[0.15 0.6 0.2 0.30]);
+%ax1 = axes('Position',[0.15 0.6 0.2 0.30]);
 
-timelapsy = imagesc(tmp);
-xticks([])
-yticks([])
+%timelapsy = imagesc(tmp);
+%xticks([])
+%yticks([])
 
 
 %save
