@@ -395,6 +395,163 @@ text(8.1,36,'(c)','FontSize',14)
 print('nostickslip', '-depsc','-r600')
 print('nostickslip', '-dpdf')
 
+%% No stick slip (long timescale)
+
+figure(20) 
+
+readfile = char("smooth_rising.dat");
+centerpos = readmatrix(readfile);
+
+hs_pix2m = 40/730; %730 pixels correspond to 40 mm
+displacement_z = centerpos(:,1);
+displacement_x = centerpos(:,2);
+
+pos0 = [.12,.14,.85,.82];
+pos1 = [.17,.6,.3,.3];
+pos2 = [.63,.20,.3,.3];
+ax0 = axes('Position',pos0,'Box','on')
+ax1 = axes('Position',pos1,'Box','on')
+ax2 = axes('Position',pos2,'Box','on')
+
+axes(ax0)
+
+offset = displacement_z(1);
+n_frames = length(displacement_z);
+time = linspace(1, n_frames, n_frames);
+
+scatter(time,abs(displacement_z-offset)*hs_pix2m)
+hold on
+plot(time,abs(displacement_z-offset)*hs_pix2m)
+
+
+%plot(hs_time,gradient((hs_displacement_z-hs_displacement_z(1))*hs_pix2m,hs_time))
+box on
+xlim([-.5, 1600])
+ylim([0, 130])
+xlabel('t [sec]')
+ylabel('\delta [mm]')
+text(1000,120,'(a)','FontSize',25)
+ax=gca;
+ax.FontSize = 14;
+
+axes(ax1)
+
+%hist((hs_displacement_z(2:65)-mean(hs_displacement_z(2:65)))*hs_pix2m)
+
+scatter(time,abs(displacement_z-offset)*hs_pix2m)
+hold on
+plot(time,abs(displacement_z-offset)*hs_pix2m)
+plot([0,500],[10,50]+0.75,'-k')
+text(35,45,'(b)','FontSize',14)
+
+
+
+%plot(hs_time,gradient((hs_displacement_z-hs_displacement_z(1))*hs_pix2m,hs_time))
+box on
+xlim([-.5 500])
+ylim([0, 55])
+%xlabel('t [sec]')
+%ylabel('\delta [mm]')
+
+axes(ax2)
+
+rangezoom = 450:650;
+
+scatter(time(rangezoom),abs(displacement_z(rangezoom)-offset)*hs_pix2m)
+hold on
+plot(time(rangezoom),abs(displacement_z(rangezoom)-offset)*hs_pix2m)
+
+box on
+xlim([480, 650])
+ylim([47,60])
+%xlabel('t [sec]')
+%ylabel('\delta [m]')
+text(500,58,'(c)','FontSize',14)
+
+
+%save
+print('nostickslip_tommaso', '-depsc','-r600')
+print('nostickslip_tommaso', '-dpdf')
+
+%% Sinking towards a layer
+
+figure(3)
+
+pix_to_mm = 40/733;
+
+fnames = dir('*.dat');
+numfiles = length(fnames);
+interval = [5.0, 5.0, 10.0];
+etas = [0.3, 0.3, 0.055];
+colors = ["#0072BD","#EDB120","#77AC30"];
+
+subplot 211
+
+for i=1:numfiles
+    
+    readfile = char(fnames(i).name);
+    tmp = readmatrix(readfile);
+    
+    displacement = tmp(:,1);
+    offset = displacement(1);
+    n_datapoints = length(displacement);
+    timearr = linspace(0, (n_datapoints - 1)*(interval(i)), n_datapoints);
+
+    scatter(timearr,(displacement-offset)*pix_to_mm, "MarkerEdgeColor",colors(i))
+    hold on
+    plot(timearr,displacement)
+   
+end
+
+box on
+xlabel('t [sec]')
+ylabel('\delta [mm]')
+%text(3250,.015,'(b)','FontSize',18)
+%set(gca,'Yscale','log')
+%set(gca,'Xscale','log')
+xlim([0 2000])
+ylim([0, 150])
+ax=gca;
+ax.FontSize = 14;
+hold off
+
+
+subplot 212
+
+for i=1:numfiles
+    
+    readfile = char(fnames(numfiles - i + 1).name);
+    tmp = readmatrix(readfile);
+    
+    displacement = tmp(:,1);
+    offset = displacement(1);
+    n_datapoints = length(displacement);
+    timearr = linspace(0, (n_datapoints - 1)*(interval(numfiles - i + 1)), n_datapoints);
+
+    scatter(timearr,(displacement-offset)*pix_to_mm/etas(numfiles - i + 1), "MarkerEdgeColor", colors(numfiles - i + 1))
+    hold on
+        
+end
+
+plot([1,2000],[1,2000],'-.k')
+
+box on
+%plot([10,3000],[10,3000],'-.k')
+xlabel('t [sec]')
+ylabel(horzcat('\delta/\eta [A.U]'))
+%text(3250,500,'(c)','FontSize',18)
+ax=gca;
+ax.FontSize = 14;
+hold off
+xlim([0 2000])
+ylim([0, 3000])
+%set(gca,'Yscale','log')
+%set(gca,'Xscale','log')
+
+%save
+print('sinking with layer', '-depsc','-r600')
+print('sinking with layer', '-dpdf', '-bestfit')
+
 %% FIGURE 3 make overview figure without lid 
 % 
 
