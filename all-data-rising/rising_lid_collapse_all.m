@@ -515,6 +515,7 @@ ax=gca;
 ax.FontSize = 14;
 hold off
 
+text(1800,30,'(a)','FontSize',14)
 
 subplot 212
 
@@ -538,7 +539,7 @@ plot([1,2000],[1,2000],'-.k')
 box on
 %plot([10,3000],[10,3000],'-.k')
 xlabel('t [sec]')
-ylabel(horzcat('\delta/\eta [A.U]'))
+ylabel(horzcat('\delta/U [sec]'))
 %text(3250,500,'(c)','FontSize',18)
 ax=gca;
 ax.FontSize = 14;
@@ -547,6 +548,9 @@ xlim([0 2000])
 ylim([0, 3000])
 %set(gca,'Yscale','log')
 %set(gca,'Xscale','log')
+
+text(1800,500,'(b)','FontSize',14)
+
 
 %save
 print('sinking with layer', '-depsc','-r600')
@@ -613,6 +617,8 @@ c.Label.String = '\sigma_S [Pa]';
 %         'TickLabels',{'0','100','200','300'})
 caxis([0,250])
 
+text(3250,120,'(a)','FontSize',18)
+
 
 subplot 212
 
@@ -638,10 +644,8 @@ end
 plot([1,10000],prefy*[1,10000],'-.k')
 
 box on
-%plot([10,3000],[10,3000],'-.k')
 xlabel('t [sec]')
 ylabel(horzcat('(\delta/\eta_{eff})^{',num2str(alphy),'} [A.U]'))
-%text(3250,500,'(c)','FontSize',18)
 ax=gca;
 ax.FontSize = 14;
 hold off
@@ -649,6 +653,9 @@ hold off
 %ylim([5, 150])
 set(gca,'Yscale','log')
 set(gca,'Xscale','log')
+
+text(3250,10,'(b)','FontSize',18)
+
 
 %save
 print(horzcat(('risingex'), num2str(lidchoice,2)), '-depsc','-r600')
@@ -757,12 +764,6 @@ for i=1:1:length(masklid)
     
 end
 
-if lidchoice
-    title('with lid')
-else
-    title('without lid')
-end
-
 %legend('','exp 1', 'exp 0.5','bla','Location','southeast')
 
 box on
@@ -776,10 +777,13 @@ ylim([.01, 110])
 ax=gca;
 ax.FontSize = 14;
 hold off
-colorbar('EastOutside')
+c = colorbar('EastOutside')
+c.Label.String = '\sigma_S [Pa]';
 %colorbar('Ticks',[0,100,200,300],...
 %         'TickLabels',{'0','100','200','300'})
-%caxis([0,350])
+caxis([0,250])
+
+text(3500,90,'(a)','FontSize',18)
 
 
 subplot 212
@@ -814,16 +818,15 @@ ylabel(horzcat('(\delta/\eta_{eff})^{',num2str(alphy),'} [A.U]'))
 ax=gca;
 ax.FontSize = 14;
 hold off
-colorbar('EastOutside')
-colorbar('Ticks',[0,100,200,300],...
-         'TickLabels',{'0','100','200','300'})
-caxis([0,350])
+
+caxis([0,250])
 xlim([5 20000])
 %ylim([1, 2E6])
 set(gca,'Yscale','log')
 set(gca,'Xscale','log')
 
-title(horzcat(('exp ='), num2str(1/alphy,2)))
+text(10000,10,'(b)','FontSize',18)
+
 
 %save
 print(horzcat(('checksq'), num2str(lidchoice,2)), '-depsc','-r600')
