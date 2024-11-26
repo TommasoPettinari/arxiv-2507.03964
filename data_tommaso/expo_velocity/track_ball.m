@@ -2,7 +2,7 @@
 %compute mean flow field with respect to the moving frame of reference of
 %the ball
 
-video_name = "DSC_0340.MOV";
+video_name = "DSC_0344.MOV";
 obj = VideoReader(video_name);
 tmp = readFrame(obj);                           %here I take the size of the frames
 
@@ -13,8 +13,8 @@ disp(xlengy);
 %length of video
 %%lengy = obj.NumFrames;                     %I store how many images
 start_frame = 300;
-end_frame = 1700;
-freq_frame = 1;
+end_frame = 9000;
+freq_frame = 10;
 
 lengy = (end_frame - start_frame) / freq_frame;
 
@@ -92,7 +92,7 @@ for i=offs:(lengy)
 end
 clear obj
 
-save('center_position_340')
+save('center_position_344')
 
 %% MODIFY CENTER POSITION IF NEEDED
 

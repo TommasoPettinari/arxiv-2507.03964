@@ -395,11 +395,11 @@ text(8.1,36,'(c)','FontSize',14)
 print('nostickslip', '-depsc','-r600')
 print('nostickslip', '-dpdf')
 
-%% No stick slip (long timescale)
+%% No stick slip (long timescale) FIGURE 8  
 
 figure(20) 
 
-readfile = char("smooth_rising.dat");
+readfile = char("data_tommaso/no_stick_slip/smooth_rising.dat");
 centerpos = readmatrix(readfile);
 
 hs_pix2m = 40/730; %730 pixels correspond to 40 mm
@@ -473,13 +473,13 @@ text(500,58,'(c)','FontSize',14)
 print('nostickslip_tommaso', '-depsc','-r600')
 print('nostickslip_tommaso', '-dpdf')
 
-%% Sinking towards a layer
+%% Sinking towards a layer FIGURE 9
 
 figure(3)
 
 pix_to_mm = 40/733;
 
-fnames = dir('*.dat');
+fnames = dir('data_tommaso/sinking_with_liquid/*.dat');
 numfiles = length(fnames);
 interval = [5.0, 5.0, 10.0];
 etas = [0.3, 0.3, 0.055];
@@ -489,7 +489,7 @@ subplot 211
 
 for i=1:numfiles
     
-    readfile = char(fnames(i).name);
+    readfile = char(strcat(fnames(i).folder,'/',fnames(i).name));
     tmp = readmatrix(readfile);
     
     displacement = tmp(:,1);
@@ -521,7 +521,7 @@ subplot 212
 
 for i=1:numfiles
     
-    readfile = char(fnames(numfiles - i + 1).name);
+    readfile = char(strcat(fnames(numfiles - i + 1).folder,'/',fnames(numfiles - i + 1).name));
     tmp = readmatrix(readfile);
     
     displacement = tmp(:,1);
@@ -1155,6 +1155,70 @@ legend('lid','no lid')
 % save
 %print('risingspeed', '-depsc','-r600')
 print('stress-vs-exponent', '-dpdf', '-bestfit')
+
+%% hydrogel level vs density
+
+file_name = 'data_tommaso/rising_hydrogel/data.dat';
+
+masses = [];
+height_hydro = [];
+height_water = [];
+normalized_height = [];
+volume = [];
+density = [];
+
+% Open the file and read the lines
+fid = fopen(file_name, 'r');
+lines = textscan(fid, '%s', 'Delimiter', '\n');
+lines = lines{1};
+fclose(fid);
+
+% Remove the header line
+lines(1) = [];
+
+% Process each line
+for count = 1:length(lines)
+    obs = str2double(strsplit(lines{count}));
+    
+    masses(count) = obs(1);
+    height_hydro(count) = obs(2);
+    height_water(count) = obs(3);
+    volume(count) = obs(4);
+    
+    normalized_height(count) = height_hydro(count) / height_water(count);
+    density(count) = masses(count) / volume(count);
+end
+
+% Create the figure and plot
+figure;
+hold on;
+
+box on
+
+ylabel('h_h / h_w');
+xlabel('\rho [g/L]');
+xlim([0.5 3.5])
+ylim([-0.1, 1.1])
+ax=gca;
+ax.FontSize = 14;
+
+% Generate and plot the theoretical line
+x1 = linspace(0.5, 3, 100);
+y1 = 0.34 * x1;
+plot(x1, y1, 'g--');
+
+% Plot the data
+plot(density, normalized_height, 'k+');
+
+% Add horizontal and vertical lines
+yline(1, 'r--');
+xline(2.95, 'b');
+
+hold off;
+
+% save
+print('level-hydrogel', '-depsc','-r600')
+print('level-hydrogel', '-dpdf', '-bestfit')
 
 %% END OF USEFUL FIGURES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

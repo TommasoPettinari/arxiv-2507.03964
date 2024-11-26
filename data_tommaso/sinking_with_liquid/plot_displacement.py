@@ -10,7 +10,7 @@ ax = plt.gca()
 time = []
 displacement = []
 
-file_name = '/home/tommaso/Projects/creep_rising_sinking/data_tommaso/sinking_with_liquid/sinking_with_liquid_2bis.dat'
+file_name = '/home/tommaso/Projects/creep_rising_sinking/data_tommaso/sinking_with_liquid/sinking_with_liquid_3.dat'
 
 data = open(file_name, 'r') #, encoding="utf-16"
 lines = data.readlines()
