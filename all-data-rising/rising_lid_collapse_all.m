@@ -556,6 +556,8 @@ text(1800,500,'(b)','FontSize',14)
 print('sinking with layer', '-depsc','-r600')
 print('sinking with layer', '-dpdf', '-bestfit')
 
+%% equatorial velocity profile (part of FIGURE 5)
+
 %% FIGURE 3 make overview figure without lid 
 % 
 
