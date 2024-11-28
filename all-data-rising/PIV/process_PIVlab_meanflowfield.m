@@ -1,7 +1,11 @@
 
-%compute mean flow field with respect to the moving frame of reference of
-%the ball
+%%%%% compute mean flow field with respect to the moving frame of reference of the ball %%%%%
+% You can start the execution of this script from Section 1
+% but if you prefer to skip the tracking of the ball and use our tracking data you can also start from Section 3
 
+%% Section 1. HERE WE INITIALIZE SOME VARIABLES
+
+%MODIFY HERE WITH PATH TO VIDEO TO ANALYZE
 video_name = "2024-07-10 - 14.19.31.avi";
 obj = VideoReader(video_name);
 tmp = readFrame(obj);                           %here I take the size of the frames
@@ -10,19 +14,17 @@ tmp = readFrame(obj);                           %here I take the size of the fra
 disp(ylengy);
 disp(xlengy);
 
-%length of video
-%%lengy = obj.NumFrames;                     %I store how many images
+%select the relevant part of the video                  
 start_frame = 500;
 end_frame = 2100;
 freq_frame = 1;
 
-lengy = (end_frame - start_frame) / freq_frame;
+lengy = (end_frame - start_frame) / freq_frame; %I store how many images
 
-%% first track ball
+%% SECTION 2. HERE WE TRACK THE BALL
 circleRadius = 100; % Change the radius as needed
 
-%imageSize = [2000, 4000]; % Change the image dimensions as needed       %also here first I store Y then X
-%I think I can do like this
+% Change the image dimensions as needed       %also here first I store Y then X
 imageSize = [500, 500];
 
 % Create a meshgrid representing the image coordinates
@@ -31,12 +33,8 @@ imageSize = [500, 500];
 % Generate a binary image with a white circle on a black background
 binaryImage = (xx - imageSize(2)/2).^2 + (yy - imageSize(1)/2).^2 <= circleRadius^2;
 
-% Create a 2D Gaussian filter to smooth the reference circle
-%gaussianFilter = fspecial('gaussian', [100, 100], 50); % Adjust parameters as needed
-
 % Smooth the binary circle image using the Gaussian filter
 smoothedReference = imgaussfilt(double(binaryImage), 10);
-%smoothedReference = conv2(double(binaryImage), gaussianFilter, 'same');
 
 % Normalize the smoothed reference image to [0, 1]
 smoothedReference = smoothedReference / max(smoothedReference(:));
@@ -92,27 +90,32 @@ for i=offs:(lengy)
 end
 clear obj
 
-save('center_position')
+save('PIV/center_position')
 
-%% HERE WE FIX THE LATERAL DRIFT OF THE BALL AND COMPUTE THE VELOCITY
+%% SECTION 3. HERE WE FIX THE LATERAL DRIFT OF THE BALL AND COMPUTE THE VELOCITY
+%You can run the script from here
+load('PIV/center_position')
 
-load('center_position')
-
+% we note that the ball is slightly drifting sideways in the central interval (the one we are interested in)
+%here we apply a correction on that drift
 for i=600:1000
     centerpos(i,2) = centerpos(i,2) - round((i-600)*5/400);
 end
 
 centervelocities = NaN(lengy-1,2);
 %note that centerpos(i,1) is the y component, while centerpos(i,2) is the x
-%component, so the velocities are switched (1 is y velocity and 2 is x
-%velocity)
+%component, so the velocities are switched (1 is y velocity and 2 is x velocity)
 for i=offs:(lengy-1)
     centervelocities(i,1) = centerpos(i+1,1) - centerpos(i,1);
     centervelocities(i,2) = centerpos(i+1,2) - centerpos(i,2);
 end
 
-%%
+%% SECTION 4. Load PIV fields obtained through PIVlab, interpolate velocity fields
+
+load('PIV/PIVlab')
+
 obj = VideoReader(video_name);
+
 % find settings of interpolation grid and make array space for it.
 interstep = 5;
 xmin = 475;     %controls the left edge
@@ -127,19 +130,7 @@ slengy = lengy-offs;
 Uqarr = NaN(length(xmax:interstep:xmin),length(ymax:interstep:ymin),slengy);
 Vqarr = NaN(length(xmax:interstep:xmin),length(ymax:interstep:ymin),slengy);
 
-%run through images, plot image, PIV data and the interpolated data. Make a
-%video out of it.
-
-% % Specify the file name and video settings
-%outputFileName = 'output_movie_new.avi';  % Change the file name as needed
-%frameRate = 10;  % Adjust the frame rate as needed
-
-% % Create a VideoWriter object
-%videoObj = VideoWriter(outputFileName, 'Motion JPEG AVI');
-%videoObj.FrameRate = frameRate;
-
-% % Open the video file for writing
-%open(videoObj);
+%run through images, plot image, PIV data and the interpolated data.
 
 for i=offs:(lengy-1)
     frame_index = start_frame + freq_frame * i;
@@ -187,20 +178,15 @@ for i=offs:(lengy-1)
     % Capture the current figure as a frame
     currentFrame = getframe(gcf);
     
-    % Write the frame to the video file
-    %writeVideo(videoObj, currentFrame);
-    
     % Close the current figure to prepare for the next one
     clf;
 end
 
 close(gcf);
 
-% Close the video file
-%close(videoObj);
 clear obj
 
-%% AVERAGING AND PLOTTING
+%% SECTION 5. AVERAGING AND PLOTTING
 
 % conversion factors
 frame_to_sec = 1/71.16;
@@ -215,7 +201,7 @@ ball_vertical_velocity = (centerpos(1600,1) - centerpos(1,1))/1600*pix_per_frame
 Uqarrmean = nanmean(Uqarr(:,:,315:1000),3)*pix_per_frame_to_cm_per_sec;
 Vqarrmean = nanmean(Vqarr(:,:,315:1000),3)*pix_per_frame_to_cm_per_sec;
 
-
+%change the velocity of pixels containing the ball to the actual ball velocity
 for i=1:92
     for j=1:92
         if (i-45)^2 + (j-46)^2 < 300
@@ -234,8 +220,90 @@ colorbar('eastoutside')
 colormap turbo
 title('Velocity left/right [cm/s]')
 
-subplot 122
+subplot 122                                          %act here to change colorbar range
 imagesc(size_x, size_y,transpose(squeeze(Vqarrmean)),[-0.04, 0.5])
 colorbar('eastoutside')
 title('Velocity with/against gravity [cm/s]')
+
+%% SECTION 6. Optionally, you can create an output video
+
+obj = VideoReader(video_name);
+
+% find settings of interpolation grid and make array space for it.
+interstep = 5;
+xmin = 475;     %controls the left edge
+xmax = 25;     %controls the right edge of the grid
+
+ymin = 475;    %controls the upper edge
+ymax = 25;     %controls the lower edge
+
+offs = 1;
+slengy = lengy-offs;
+
+% Specify the file name and video settings
+outputFileName = 'output_movie.avi';  % Change the file name as needed
+frameRate = 10;  % Adjust the frame rate as needed
+
+% Create a VideoWriter object
+videoObj = VideoWriter(outputFileName, 'Motion JPEG AVI');
+videoObj.FrameRate = frameRate;
+
+% Open the video file for writing
+open(videoObj);
+
+for i=offs:(lengy-1)
+    frame_index = start_frame + freq_frame * i;
+    tmp = read(obj,frame_index);
+    grey_tmp = rgb2gray(tmp);
+    
+    imshow(grey_tmp, 'colormap', jet);
+    
+    hold on;
+    plot(centerpos(i,2)-imageSize(2)/2, centerpos(i,1)-imageSize(1)/2, 'r+', 'MarkerSize', 100);  %centering fix; somehow there is an offset; presumably due to size of convolution image
+    
+    % process only subset of grid points close to ball
+    xs = (centerpos(i,2)-xmax):-interstep:(centerpos(i,2)-xmin);
+    ys = (centerpos(i,1)-ymax):-interstep:(centerpos(i,1)-ymin);
+
+    [Xs,Ys] = meshgrid(xs,ys);
+
+    scatter(Xs,Ys,'^m')
+    
+    % PIV data extraction from .mat export    
+    PIVx = cell2mat(x(i));
+    PIVy = cell2mat(y(i));
+    PIVu = cell2mat(u_original(i));
+    PIVv = cell2mat(v_original(i));
+    
+    %plot the gridpoints where data was obtained
+    scatter(PIVx,PIVy,'ok')
+
+    %make a velcity field plot
+    quiver(PIVx,PIVy,PIVu,PIVv,10)
+    
+    %make interpolations in new grid subset, over finer mesh that is
+    %co-moving with the ball
+    Uq = interp2(PIVx,PIVy,PIVu,Xs,Ys,'cubic');
+    Vq = interp2(PIVx,PIVy,PIVv,Xs,Ys,'cubic');
+
+    %show the interpolated velocity field; check consistency
+    quiver(Xs,Ys,Uq,Vq,10)
+    
+    hold off;
+
+    % Capture the current figure as a frame
+    currentFrame = getframe(gcf);
+    
+    % Write the frame to the video file
+    writeVideo(videoObj, currentFrame);
+    
+    % Close the current figure to prepare for the next one
+    clf;
+end
+
+close(gcf);
+
+% Close the video file
+close(videoObj);
+clear obj
 

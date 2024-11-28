@@ -239,17 +239,6 @@ for i=1:numfiles
 
 end
 
-%% high speed data: extract sample from Tommaso's measurements July '24
-
-
-tmp = importdata('2024-07-11 - 15.22.mqa');
-
-hs_time = tmp.data(:,2); % already in seconds
-hs_displacement_x = tmp.data(:,3);
-hs_displacement_z = tmp.data(:,end);
-
-hs_pix2m = 100/520; % the calibration is 500 pixels for 100mm.
-
 
 %% FIGURE 1 make comparison of previous data and current data.
 
@@ -326,75 +315,6 @@ ax.FontSize = 14;
 print('excomp', '-depsc','-r600')
 print('excomp', '-dpdf')
 
-%% demonstrate no stick slip
-
-figure(10) 
-
-pos0 = [.12,.14,.85,.82];
-pos1 = [.17,.6,.3,.3];
-pos2 = [.63,.20,.3,.3];
-ax0 = axes('Position',pos0,'Box','on')
-ax1 = axes('Position',pos1,'Box','on')
-ax2 = axes('Position',pos2,'Box','on')
-
-axes(ax0)
-
-offsety = mean(hs_displacement_z(2:65));
-
-scatter(hs_time-0.901409,(hs_displacement_z-offsety)*hs_pix2m)
-hold on
-plot(hs_time-0.901409,(hs_displacement_z-offsety)*hs_pix2m)
-
-
-%plot(hs_time,gradient((hs_displacement_z-hs_displacement_z(1))*hs_pix2m,hs_time))
-box on
-xlim([-.5, 32])
-ylim([0, 160])
-xlabel('t [sec]')
-ylabel('\delta [mm]')
-text(27,130,'(a)','FontSize',25)
-ax=gca;
-ax.FontSize = 14;
-
-axes(ax1)
-
-%hist((hs_displacement_z(2:65)-mean(hs_displacement_z(2:65)))*hs_pix2m)
-
-scatter(hs_time-0.901409,(hs_displacement_z-offsety)*hs_pix2m)
-hold on
-plot(hs_time-0.901409,(hs_displacement_z-offsety)*hs_pix2m)
-plot([0,3],[4,21]+0.75,'-k')
-text(-.3,12,'(b)','FontSize',14)
-
-
-
-%plot(hs_time,gradient((hs_displacement_z-hs_displacement_z(1))*hs_pix2m,hs_time))
-box on
-xlim([-.5 2])
-ylim([0, 16])
-%xlabel('t [sec]')
-%ylabel('\delta [mm]')
-
-axes(ax2)
-
-rangezoom = 500:600;
-
-scatter(hs_time(rangezoom),(hs_displacement_z(rangezoom)-hs_displacement_z(1))*hs_pix2m)
-hold on
-plot(hs_time(rangezoom),(hs_displacement_z(rangezoom)-hs_displacement_z(1))*hs_pix2m)
-
-box on
-xlim([7.1, 8.4])
-ylim([34,41])
-%xlabel('t [sec]')
-%ylabel('\delta [m]')
-text(8.1,36,'(c)','FontSize',14)
-
-
-%save
-print('nostickslip', '-depsc','-r600')
-print('nostickslip', '-dpdf')
-
 %% No stick slip (long timescale) FIGURE 8  
 
 figure(20) 
@@ -418,7 +338,7 @@ axes(ax0)
 offset = displacement_z(1);
 n_frames = length(displacement_z);
 time = linspace(1, n_frames, n_frames);
-
+displacement_z(1168) = NaN;      %removing one weird tracking outlier
 scatter(time,abs(displacement_z-offset)*hs_pix2m)
 hold on
 plot(time,abs(displacement_z-offset)*hs_pix2m)
@@ -556,8 +476,6 @@ text(1800,500,'(b)','FontSize',14)
 print('sinking with layer', '-depsc','-r600')
 print('sinking with layer', '-dpdf', '-bestfit')
 
-%% equatorial velocity profile (part of FIGURE 5)
-
 %% FIGURE 3 make overview figure without lid 
 % 
 
@@ -663,7 +581,7 @@ text(3250,10,'(b)','FontSize',18)
 print(horzcat(('risingex'), num2str(lidchoice,2)), '-depsc','-r600')
 print(horzcat(('risingex'), num2str(lidchoice,2)), '-dpdf', '-bestfit')
 
-%% FIGURE 2 plot stress dependence of buoyancy speed
+%% FIGURE 4 plot stress dependence of buoyancy speed
 
 figure(2)
 
@@ -732,7 +650,7 @@ legend('lid','no lid','\propto e^{-\sigma/\sigma_0}','Location','northwest')
 print('risingspeed-both', '-dpdf', '-bestfit')
 
     
-%% FIGURE 4 verify sqrt with lid 
+%% FIGURE 10 verify nonlinearity with lid 
 % 
 
 indexchoice = 23;
@@ -833,6 +751,74 @@ text(10000,10,'(b)','FontSize',18)
 %save
 print(horzcat(('checksq'), num2str(lidchoice,2)), '-depsc','-r600')
 print(horzcat(('checksq'), num2str(lidchoice,2)), '-dpdf', '-bestfit')
+
+%%%%%%%%%%%%%%%%%%%%%% END OF PAPER PICTURES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%% START OF SOME USEFUL SUPPLEMENTARY PICTURES %%%%%%%%%%%%%%%%%%%%%
+%% hydrogel level vs density
+
+file_name = 'data_tommaso/rising_hydrogel/data.dat';
+
+masses = [];
+height_hydro = [];
+height_water = [];
+normalized_height = [];
+volume = [];
+density = [];
+
+% Open the file and read the lines
+fid = fopen(file_name, 'r');
+lines = textscan(fid, '%s', 'Delimiter', '\n');
+lines = lines{1};
+fclose(fid);
+
+% Remove the header line
+lines(1) = [];
+
+% Process each line
+for count = 1:length(lines)
+    obs = str2double(strsplit(lines{count}));
+    
+    masses(count) = obs(1);
+    height_hydro(count) = obs(2);
+    height_water(count) = obs(3);
+    volume(count) = obs(4);
+    
+    normalized_height(count) = height_hydro(count) / height_water(count);
+    density(count) = masses(count) / volume(count);
+end
+
+% Create the figure and plot
+figure;
+hold on;
+
+box on
+
+ylabel('h_h / h_w');
+xlabel('\rho [g/L]');
+xlim([0.5 3.5])
+ylim([-0.1, 1.1])
+ax=gca;
+ax.FontSize = 14;
+
+% Generate and plot the theoretical line
+x1 = linspace(0.5, 3, 100);
+y1 = 0.34 * x1;
+plot(x1, y1, 'g--');
+
+% Plot the data
+plot(density, normalized_height, 'k+');
+
+% Add horizontal and vertical lines
+yline(1, 'r--');
+xline(2.95, 'b');
+
+hold off;
+
+% save
+print('level-hydrogel', '-depsc','-r600')
+print('level-hydrogel', '-dpdf', '-bestfit')
+
+%%%%% END OF SUPPL. PICTURES %%%%
 
 %% make figure for speeds 
 % 
@@ -1158,69 +1144,7 @@ legend('lid','no lid')
 %print('risingspeed', '-depsc','-r600')
 print('stress-vs-exponent', '-dpdf', '-bestfit')
 
-%% hydrogel level vs density
 
-file_name = 'data_tommaso/rising_hydrogel/data.dat';
-
-masses = [];
-height_hydro = [];
-height_water = [];
-normalized_height = [];
-volume = [];
-density = [];
-
-% Open the file and read the lines
-fid = fopen(file_name, 'r');
-lines = textscan(fid, '%s', 'Delimiter', '\n');
-lines = lines{1};
-fclose(fid);
-
-% Remove the header line
-lines(1) = [];
-
-% Process each line
-for count = 1:length(lines)
-    obs = str2double(strsplit(lines{count}));
-    
-    masses(count) = obs(1);
-    height_hydro(count) = obs(2);
-    height_water(count) = obs(3);
-    volume(count) = obs(4);
-    
-    normalized_height(count) = height_hydro(count) / height_water(count);
-    density(count) = masses(count) / volume(count);
-end
-
-% Create the figure and plot
-figure;
-hold on;
-
-box on
-
-ylabel('h_h / h_w');
-xlabel('\rho [g/L]');
-xlim([0.5 3.5])
-ylim([-0.1, 1.1])
-ax=gca;
-ax.FontSize = 14;
-
-% Generate and plot the theoretical line
-x1 = linspace(0.5, 3, 100);
-y1 = 0.34 * x1;
-plot(x1, y1, 'g--');
-
-% Plot the data
-plot(density, normalized_height, 'k+');
-
-% Add horizontal and vertical lines
-yline(1, 'r--');
-xline(2.95, 'b');
-
-hold off;
-
-% save
-print('level-hydrogel', '-depsc','-r600')
-print('level-hydrogel', '-dpdf', '-bestfit')
 
 %% END OF USEFUL FIGURES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

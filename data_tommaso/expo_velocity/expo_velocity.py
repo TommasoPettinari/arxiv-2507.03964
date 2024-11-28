@@ -4,7 +4,7 @@ import numpy as np
 files = [335, 336, 337, 338, 339, 341, 340, 342, 343, 344]
 masses = [23.61, 25.96, 27.95, 28.90, 30.50, 31.00, 31.13, 32.2, 32.8, 33.6]
 frame_rate = [50, 50, 50, 50, 50, 50, 50, 50, 50, 5]
-pix_to_cm = 2/115
+pix_to_cm = [2/115, 2/115, 2/115, 2/115, 2/115, 2/90, 2/115, 2/90, 2/90, 2/90]
 
 limits = [[90, 130, 150],
           [110, 170, 200],
@@ -34,13 +34,15 @@ for i in range(10):
         obs = line.split()
         
         time.append(count/frame_rate[i])
-        space.append((offset - float(obs[0]))*pix_to_cm)
+        space.append((offset - float(obs[0]))*pix_to_cm[i])
     
     fit_x = [ t - time[limits[i][0]] for t in time[limits[i][0]:limits[i][1]]]
     fit_y = [ s - space[limits[i][0]] for s in space[limits[i][0]:limits[i][1]]]
     
     m, b = np.polyfit(fit_x, fit_y, 1)
     speeds.append(np.abs(m))
+    
+    etas.append()
     
     
     
@@ -62,12 +64,12 @@ for i in range(10):
 fig2 = plt.figure()
 ax2 = plt.gca()
 
-y2 = [2.5e6*np.exp(-0.5*mass) for mass in masses[2:]]
+y2 = [2e4*np.exp(-0.3*mass) for mass in masses]
 
 plt.ylabel(r'$\dot{\delta}$',fontsize=15)
 plt.xlabel(r'$mass [g]$',fontsize=15)
 plt.yscale('log')
-plt.plot(masses, speeds, 'k+-')
-plt.plot(masses[2:], y2, 'r--', alpha = 0.8, label=r'$y=2.5e6 e^{-0.5 x}$')
+plt.plot(masses, speeds, 'k+')
+plt.plot(masses, y2, 'r--', alpha = 0.8, label=r'$y=2e4 e^{- 0.3x}$')
 plt.legend()
 plt.show()
