@@ -422,8 +422,9 @@ print('sinking with layer', '-dpdf', '-bestfit')
 
 lidchoice = 0;
 
-
 masklid = find(lidonarr == lidchoice);
+% excluding the non-PPball
+masklid = find(lidonarr == lidchoice & sizearr' == 40);
 
 if lidchoice % 1 is with lid 
     alphy = 2;
@@ -532,28 +533,40 @@ colormap parula
 % assume water density = 1000 kg/m3. Not technically correct due to
 % presence of hydrogels, but good enough
 
-
+% compute volume of all spheres
 volsy = 0.333*pi()*4*(sizearr/2000).^3;
+% weight of displaced volume
 wdisplvol = 1000*volsy;
+% density of spheres; convert weight to kg as well
 denspart = weightarr./(1000*volsy');
+% the delta rho calculation, using 1kg/L as reference for density of liquid
 deltarho = 1000-denspart;
-etaconv = 2.*deltarho*(sizearr/2000).^2*9.81./9;
+% computing the effective viscosity from the slope
+etaconv = 2.*deltarho'.*(sizearr/2000).^2*9.81./9;
 
-plot(buoyarr(1:12),etaconv./slopearr(1:12), '^',...    
+% set nonPPball to zero
+masksize = find(sizearr < 40);
+etaconv(masksize) = NaN;
+
+% plot data with lid, with linear fit (which doesn't work very well), 
+% to show that the new lid data still shows the
+% exponential stress dependence
+
+plot(buoyarr(1:12),etaconv(1:12)./slopearr(1:12), '^',...    
     'LineWidth',2,...
     'MarkerSize',10,...
     'MarkerEdgeColor','k',...
     'MarkerFaceColor',[1,1,0])
 hold on
-%scatter(buoyarr(1:12),etaconv.*slopearr(1:12), 90, sizearr(1:12),'^','filled')
 
+%scatter(buoyarr(1:12),etaconv.*slopearr(1:12), 90, sizearr(1:12),'^','filled')
 
 % plot(buoyarr(13:57),etaconv.*slopearr(13:57), 'o',...    
 %     'LineWidth',2,...
 %     'MarkerSize',10,...
 %     'MarkerEdgeColor',[0,0,0],...
 %     'MarkerFaceColor',[0.5,0.,0.2])
-scatter(buoyarr(13:57),etaconv./slopearr(13:57), 90, sizearr(13:57),'o','filled')
+scatter(buoyarr(13:57),etaconv(13:57)./slopearr(13:57), 90, sizearr(13:57),'o','filled')
 
 
 
@@ -562,9 +575,8 @@ xlabel('\sigma_S [N/m^2]')
 ylabel('\eta_{\rm eff} [Pa\cdot s]')
 %text(3250,.015,'(b)','FontSize',18)
 set(gca,'Yscale','log')
-%set(gca,'Xscale','log')
-%xlim([0 2500])%xlim([20,6000])
-ylim([1,1E4])%ylim([3E-3,.15])
+ylim([.002,2E2])
+xlim([30,250])
 ax=gca;
 ax.FontSize = 14;
 
@@ -573,6 +585,8 @@ c.Label.String = 'Intruder diameter [mm]';
 c.Ticks = [20,25,40];
 
 hold on
+
+% plot three reference lines, slopes and offsets evaluated manually
 xtmp = 10:1:250;
 plot(xtmp,1E6*exp(-xtmp./23),'-.k')
 plot(xtmp,1E5*exp(-xtmp./17),'-.k')
@@ -582,9 +596,6 @@ plot(xtmp,5E4*exp(-xtmp./10),'-.k')
 hold off
 
 legend('lid','no lid','\propto e^{-\sigma/\sigma_0}','Location','northwest')
-
-
-
 
 % save
 %print('risingspeed', '-depsc','-r600')
@@ -600,6 +611,8 @@ lidchoice = 1;
 alphy = 1/fitexpyarr(indexchoice);
 
 masklid = find(lidonarr == lidchoice);
+% excluding the non-PPball
+masklid = find(lidonarr == lidchoice & sizearr' == 40);
 
 figure(4)
 
