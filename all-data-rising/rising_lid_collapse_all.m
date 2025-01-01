@@ -35,11 +35,12 @@ kurtarr = NaN(numfiles,1+round((eexpy-bexpy)/expyr)); % kurtosis stats of residu
 skewarr = NaN(numfiles,1+round((eexpy-bexpy)/expyr)); % skewness stats of residuals
 distopyarr = NaN(numfiles,1+round((eexpy-bexpy)/expyr)); % distance to optimum
 
-% extract prefactors for all non fits (new for these data)
+% extract prefactors for all nonlin fits (new for these data)
 fitexpyarr = bexpy:expyr:eexpy;
 slopearr_nonlin = NaN(numfiles,length(fitexpyarr));
 offsetarr_nonlin = NaN(numfiles,length(fitexpyarr));
 exparr_nonlin = NaN(numfiles,length(fitexpyarr));
+conf_nonlin = NaN(numfiles,2,2);
 
 bestexparr = NaN(numfiles,1); 
 optexparr = NaN(numfiles,1);
@@ -163,10 +164,10 @@ close all
 
 %% some admin stuff: extract buoyancy data
 
-%buoyancy force comes from the weight of displaced volume minus the weight
-%from intruder
+% buoyancy force comes from the weight of displaced volume minus the weight
+% from intruder
 
-%weight of displaced volume: rho * 4/3pir^3
+% weight of displaced volume: rho * 4/3pir^3
 % assume water density = 1000
 % convert to grams for easier calcs
 % sizearr has diameters in mm
@@ -199,11 +200,26 @@ for i=1:numfiles
 
 end
 
+% Some more admin for buoyancy versus sinking rate analyses
 
-%% FIGURE 1 make comparison of previous data and current data.
+% weight of displaced volume: rho * 4/3 pi r^3
+% assume water density = 1000 kg/m3. Not technically correct due to
+% presence of hydrogels, but good enough
 
-% relies on data extracted in first step of code. Extract delta(t)
-% experiments at similar time/displacement levels
+% compute volume of all spheres
+volsy = 0.333*pi()*4*(sizearr/2000).^3;
+% weight of displaced volume
+wdisplvol = 1000*volsy;
+% density of spheres; convert weight to kg as well
+denspart = weightarr./(1000*volsy');
+% the delta rho calculation, using 1kg/L as reference for density of liquid
+deltarho = 1000-denspart;
+% computing the effective viscosity from the slope
+etaconv = 2.*deltarho'.*(sizearr/2000).^2*9.81./9;
+
+%% FIGURE 1 is a picture / description of the experiments
+
+%% FIGURE 2 Single linear and non-linear to introduce results.
 
 figure(1)
 
@@ -216,14 +232,21 @@ figure(1)
 % 7 & 29
 % 8 & 30
 
-maskex = 26; % the hist12 example 
+maskex = 26; % the filename=hist12 example as picked
 
 for i=1:1:length(maskex)
     
     scatter(timearr(maskex(i),:),displarr(maskex(i),:), '^k')
     hold on
+    % a 5% was considered reasonable for these measurements, based on pixel
+    % inaccuracy estimated in positioning
+    errorbar(timearr(maskex(i),:),displarr(maskex(i),:),0.05*displarr(maskex(i),:),'k')
+    
+    %for optical improvement, also include a line between the data points
     plot(timearr(maskex(i),:),displarr(maskex(i),:), '-.k')
 
+    % plot reference line from nonlin fit. #33 is just the linear option
+    % in this set
     plot(timearr(maskex(i),:),slopearr_nonlin(maskex(i),33)*timearr(maskex(i),:),'-k')
 
     fprintf('lidstress = %d \n', buoyarr(maskex(i)))
@@ -231,12 +254,14 @@ for i=1:1:length(maskex)
 end
 
 %  then plot data from the same stress runs but then with a lid
-maskex = maskex - 22; % select the ones with lid
+maskex = maskex - 22; % select the one with lid
 
 for i=1:1:length(maskex)
     
     scatter(timearr(maskex(i),:),displarr(maskex(i),:), 'ob')
     hold on
+    errorbar(timearr(maskex(i),:),displarr(maskex(i),:),0.05*displarr(maskex(i),:),'b')
+
     plot(timearr(maskex(i),:),displarr(maskex(i),:), '-.b')
     fprintf('lidstress = %d \n', buoyarr(maskex(i)))
 
@@ -253,10 +278,191 @@ ax=gca;
 ax.FontSize = 14;
 
 %save
-print('excomp', '-depsc','-r600')
-print('excomp', '-dpdf')
+print('2-excomp', '-dpdf')
 
-%% No stick slip (long timescale) FIGURE 8  
+
+%% FIGURE 3 (a) t-series for pingpong with phi 6.35 3(b) slopes vs buoyancy for this data.
+ 
+
+% first option: find all data with rising sphere data, and no lid present
+% on the surface of the packing
+lidchoice = 0;
+masklid = find(lidonarr == lidchoice);
+% excluding the non-PPball
+masklid = find(lidonarr == lidchoice & sizearr' == 40);
+% excluding all the runs after the lid/no-lid varianst with single phi for
+% hydrogel density
+masklid = [20,21,24:36];
+
+% plot reference line from nonlin fit. #33 is just the linear option
+% in this set
+indexchoice = 33;
+alphy = 1/fitexpyarr(indexchoice);
+
+
+figure(31)
+
+% show an overall family of pp ball data. color is stress
+subplot 211
+cmap = colormap(parula(length(unique(buoyarr(masklid)))));
+
+for i=1:1:length(masklid)
+    
+    indexer = find(unique(buoyarr(masklid))==buoyarr(masklid(i)));
+    
+    scatter(timearr(masklid(i),:),displarr(masklid(i),:), 'k','MarkerEdgeColor',cmap(indexer,:))
+    hold on
+    plot(timearr(masklid(i),:),displarr(masklid(i),:), 'k','Color',cmap(indexer,:))
+
+    if ~isnan(errarr(masklid(i))) 
+  %      errorbar(timearr(masklid(i),:),displarr(masklid(i),:),errarr(masklid(i),:),'k')%,'Color',cmap(indexer,:))
+        fprintf('errorrrrrrrrrr %d\n', expy)
+    end
+        
+        
+
+    
+end
+
+box on
+xlabel('t [sec]')
+ylabel('\delta [mm]')
+text(1300,110,'(a)','FontSize',18)
+xlim([0 1500])
+ylim([0, 125])
+ax=gca;
+ax.FontSize = 14;
+hold off
+c = colorbar('EastOutside');
+c.Label.String = '\sigma_S [Pa]';
+caxis([0,250]);
+
+% display the stress dependence of the effective viscosity
+subplot 212
+
+% masklid has the selection as chosen above
+minerr = etaconv(masklid)./slopearr(masklid)-etaconv(masklid)./conf_lin(masklid,2,1);
+maxerr = etaconv(masklid)./conf_lin(masklid,1,1)-etaconv(masklid)./slopearr(masklid);
+
+errorbar(buoyarr(masklid),etaconv(masklid)./slopearr(masklid),minerr,maxerr,'ok')
+hold on
+scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
+errorbar(buoyarr(masklid),etaconv(masklid)./slopearr(masklid),minerr,maxerr,'.k')
+
+box on
+xlabel('\sigma_S [N/m^2]')
+ylabel('\eta_{\rm eff} [Pa\cdot s]')
+text(235,60,'(b)','FontSize',18)
+set(gca,'Yscale','log')
+ylim([.5,100]);
+xlim([120,250]);
+ax=gca;
+ax.FontSize = 14;
+
+hold on
+xtmp = 10:1:250;
+plot(xtmp,7E3*exp(-xtmp./27),'-.k')
+hold off 
+
+print(horzcat(('3-dense_ex'), num2str(lidchoice,2)), '-dpdf', '-bestfit')
+
+%% Fig 4(a) Collapse for all pingpong ball data (6.35,6.25,6) 4(b) Slopes for all ping pong ball data
+
+% excluding the non-PPball
+masklid = find(lidonarr == lidchoice & sizearr' == 40);
+
+cmap = colormap(parula(length(unique(buoyarr(masklid)))));
+
+figure(33)
+% show the rescaling of the sped with eta effective
+subplot 211
+
+for i=1:1:length(masklid) 
+    
+    indexer = find(unique(buoyarr(masklid))==buoyarr(masklid(i)));
+    
+
+    %scatter(timearr(masklid(i),:),(1./slopearr(masklid(i)))*displarr(masklid(i),:).^alphy, 'k','MarkerEdgeColor',cmap(indexer,:))
+    %hold on
+    %plot(timearr(masklid(i),:),(1./slopearr(masklid(i)))*displarr(masklid(i),:).^alphy, 'k','Color',cmap(indexer,:))
+
+    scatter(timearr(masklid(i),:),(displarr(masklid(i),:)./slopearr_nonlin(masklid(i),indexchoice)).^alphy, 'k','MarkerEdgeColor',cmap(indexer,:))
+    hold on
+
+    if ~isnan(errarr(masklid(i))) 
+        fprintf('errorrrrrrrrrr %d\n', expy)
+    end
+        
+        
+end
+
+plot([1,10000],[1,10000],'-.k')
+
+box on
+xlabel('t [sec]')
+ylabel(horzcat('(\delta\eta_{eff})^{',num2str(alphy),'} [A.U]'))
+ax=gca;
+ax.FontSize = 14;
+hold off
+xlim([1 10000])
+ylim([1 10000])
+set(gca,'Yscale','log')
+set(gca,'Xscale','log')
+
+text(3250,10,'(a)','FontSize',18)
+
+c = colorbar('EastOutside');
+c.Label.String = '\sigma_S [Pa]';
+caxis([0,250]);
+
+subplot 212
+
+%scatter(buoyarr(13:57),etaconv(13:57)./slopearr(13:57), 90, buoyarr(13:57), 'o','filled')
+% or exclude some
+scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
+
+hold on
+
+box on
+xlabel('\sigma_S [N/m^2]')
+ylabel('\eta_{\rm eff} [Pa\cdot s]')
+text(225,30,'(b)','FontSize',18)
+set(gca,'Yscale','log')
+ylim([.01,100]);
+xlim([30,250]);
+ax=gca;
+ax.FontSize = 14;
+
+% plot three reference lines, slopes and offsets evaluated manually
+% this concerns three different samples (6.35, 6.25, 6.0 g/L) so different
+% slopes are expected
+xtmp = 10:1:250;
+plot(xtmp,7E3*exp(-xtmp./27),'-.k')
+plot(xtmp,3E3*exp(-xtmp./17),'-.k')
+plot(xtmp,3E1*exp(-xtmp./12),'-.k')
+
+
+hold off
+
+legend('lid','no lid','\propto e^{-\sigma/\sigma_0}','Location','northwest')
+
+%save
+print(horzcat(('4-risingex_rescale'), num2str(lidchoice,2)), '-dpdf', '-bestfit')
+
+%% Figure 5 PIV data, Stokes solution etc
+
+% 
+% look elsewhere in repository
+
+%% FIGURE 6 Temperature dependent sinking rate; 
+% 
+% look elsewhere in repository
+
+%% FIGURE 7 Visualization of the surface flow
+% 
+% just sample images from typical experiments
+
+%%  FIGURE 8 High speed video processing showing no stick slip i.e. smooth motion  (long timescale)  
 
 figure(20) 
 
@@ -331,10 +537,9 @@ text(500,58,'(c)','FontSize',14)
 
 
 %save
-print('nostickslip_tommaso', '-depsc','-r600')
-print('nostickslip_tommaso', '-dpdf')
+print('8-nostickslip_tommaso', '-dpdf')
 
-%% Sinking towards a layer FIGURE 9
+%% FIGURE 9 Sinking towards a liquid layer - Fluid boundary at bottom  
 
 figure(3)
 
@@ -414,196 +619,10 @@ text(1800,500,'(b)','FontSize',14)
 
 
 %save
-print('sinking with layer', '-depsc','-r600')
-print('sinking with layer', '-dpdf', '-bestfit')
+print('9-sinking with layer', '-dpdf', '-bestfit')
 
-%% FIGURE 3 make overview figure without lid 
-% 
-
-lidchoice = 0;
-
-masklid = find(lidonarr == lidchoice);
-% excluding the non-PPball
-masklid = find(lidonarr == lidchoice & sizearr' == 40);
-
-if lidchoice % 1 is with lid 
-    alphy = 2;
-    prefy = 100;
-else % alphy = 1.5 gives a better collapse, but the asymptote really seems to be a slope of 1.
-    alphy = 1;
-    prefy = 1;
-end
-
-indexchoice = 33;
-alphy = 1/fitexpyarr(indexchoice);
-
-
-figure(3)
-
-subplot 211
-cmap = colormap(parula(length(unique(buoyarr(masklid)))));
-
-for i=1:1:length(masklid)
-    
-    indexer = find(unique(buoyarr(masklid))==buoyarr(masklid(i)));
-    
-
-    scatter(timearr(masklid(i),:),displarr(masklid(i),:), 'k','MarkerEdgeColor',cmap(indexer,:))
-    hold on
-    plot(timearr(masklid(i),:),displarr(masklid(i),:), 'k','Color',cmap(indexer,:))
-
-    if ~isnan(errarr(masklid(i))) 
-  %      errorbar(timearr(masklid(i),:),displarr(masklid(i),:),errarr(masklid(i),:),'k')%,'Color',cmap(indexer,:))
-        fprintf('errorrrrrrrrrr %d\n', expy)
-    end
-        
-        
-
-    
-end
-
-box on
-xlabel('t [sec]')
-ylabel('\delta [mm]')
-%text(3250,.015,'(b)','FontSize',18)
-%set(gca,'Yscale','log')
-%set(gca,'Xscale','log')
-xlim([0 4000])
-ylim([0, 150])
-ax=gca;
-ax.FontSize = 14;
-hold off
-c = colorbar('EastOutside')
-c.Label.String = '\sigma_S [Pa]';
-%colorbar('Ticks',[0,100,200,300],...
-%         'TickLabels',{'0','100','200','300'})
-caxis([0,250])
-
-text(3250,120,'(a)','FontSize',18)
-
-
-subplot 212
-
-for i=1:1:length(masklid) 
-    
-    indexer = find(unique(buoyarr(masklid))==buoyarr(masklid(i)));
-    
-
-    %scatter(timearr(masklid(i),:),(1./slopearr(masklid(i)))*displarr(masklid(i),:).^alphy, 'k','MarkerEdgeColor',cmap(indexer,:))
-    %hold on
-    %plot(timearr(masklid(i),:),(1./slopearr(masklid(i)))*displarr(masklid(i),:).^alphy, 'k','Color',cmap(indexer,:))
-
-    scatter(timearr(masklid(i),:),(displarr(masklid(i),:)./slopearr_nonlin(masklid(i),indexchoice)).^alphy, 'k','MarkerEdgeColor',cmap(indexer,:))
-    hold on
-
-    if ~isnan(errarr(masklid(i))) 
-        fprintf('errorrrrrrrrrr %d\n', expy)
-    end
-        
-        
-end
-
-plot([1,10000],prefy*[1,10000],'-.k')
-
-box on
-xlabel('t [sec]')
-ylabel(horzcat('(\delta/\eta_{eff})^{',num2str(alphy),'} [A.U]'))
-ax=gca;
-ax.FontSize = 14;
-hold off
-%xlim([5 200])
-%ylim([5, 150])
-set(gca,'Yscale','log')
-set(gca,'Xscale','log')
-
-text(3250,10,'(b)','FontSize',18)
-
-
-%save
-print(horzcat(('risingex'), num2str(lidchoice,2)), '-depsc','-r600')
-print(horzcat(('risingex'), num2str(lidchoice,2)), '-dpdf', '-bestfit')
-
-%% FIGURE 4 plot stress dependence of buoyancy speed
-
-figure(2)
-
-colormap parula
-
-% weight of displaced volume: rho * 4/3pir^3
-% assume water density = 1000 kg/m3. Not technically correct due to
-% presence of hydrogels, but good enough
-
-% compute volume of all spheres
-volsy = 0.333*pi()*4*(sizearr/2000).^3;
-% weight of displaced volume
-wdisplvol = 1000*volsy;
-% density of spheres; convert weight to kg as well
-denspart = weightarr./(1000*volsy');
-% the delta rho calculation, using 1kg/L as reference for density of liquid
-deltarho = 1000-denspart;
-% computing the effective viscosity from the slope
-etaconv = 2.*deltarho'.*(sizearr/2000).^2*9.81./9;
-
-% set nonPPball to zero
-masksize = find(sizearr < 40);
-etaconv(masksize) = NaN;
-
-% plot data with lid, with linear fit (which doesn't work very well), 
-% to show that the new lid data still shows the
-% exponential stress dependence
-
-plot(buoyarr(1:12),etaconv(1:12)./slopearr(1:12), '^',...    
-    'LineWidth',2,...
-    'MarkerSize',10,...
-    'MarkerEdgeColor','k',...
-    'MarkerFaceColor',[1,1,0])
-hold on
-
-%scatter(buoyarr(1:12),etaconv.*slopearr(1:12), 90, sizearr(1:12),'^','filled')
-
-% plot(buoyarr(13:57),etaconv.*slopearr(13:57), 'o',...    
-%     'LineWidth',2,...
-%     'MarkerSize',10,...
-%     'MarkerEdgeColor',[0,0,0],...
-%     'MarkerFaceColor',[0.5,0.,0.2])
-scatter(buoyarr(13:57),etaconv(13:57)./slopearr(13:57), 90, sizearr(13:57),'o','filled')
-
-
-
-box on
-xlabel('\sigma_S [N/m^2]')
-ylabel('\eta_{\rm eff} [Pa\cdot s]')
-%text(3250,.015,'(b)','FontSize',18)
-set(gca,'Yscale','log')
-ylim([.002,2E2])
-xlim([30,250])
-ax=gca;
-ax.FontSize = 14;
-
-c = colorbar('eastoutside');
-c.Label.String = 'Intruder diameter [mm]';
-c.Ticks = [20,25,40];
-
-hold on
-
-% plot three reference lines, slopes and offsets evaluated manually
-xtmp = 10:1:250;
-plot(xtmp,1E6*exp(-xtmp./23),'-.k')
-plot(xtmp,1E5*exp(-xtmp./17),'-.k')
-plot(xtmp,1E4*exp(-xtmp./10),'-.k')
-plot(xtmp,5E4*exp(-xtmp./10),'-.k')
-
-hold off
-
-legend('lid','no lid','\propto e^{-\sigma/\sigma_0}','Location','northwest')
-
-% save
-%print('risingspeed', '-depsc','-r600')
-print('risingspeed-both', '-dpdf', '-bestfit')
-
-    
 %% FIGURE 10 verify nonlinearity with lid 
-% 
+% (a) Time series for cases with lid plus (b) collapse 
 
 indexchoice = 23;
 
@@ -614,7 +633,7 @@ masklid = find(lidonarr == lidchoice);
 % excluding the non-PPball
 masklid = find(lidonarr == lidchoice & sizearr' == 40);
 
-figure(4)
+figure(10)
 
 subplot 211
 cmap = colormap(parula(length(unique(buoyarr(masklid)))));
@@ -651,11 +670,11 @@ ylim([.01, 110])
 ax=gca;
 ax.FontSize = 14;
 hold off
-c = colorbar('EastOutside')
+c = colorbar('EastOutside');
 c.Label.String = '\sigma_S [Pa]';
 %colorbar('Ticks',[0,100,200,300],...
 %         'TickLabels',{'0','100','200','300'})
-caxis([0,250])
+caxis([0,250]);
 
 text(3500,90,'(a)','FontSize',18)
 
@@ -703,11 +722,68 @@ text(10000,10,'(b)','FontSize',18)
 
 
 %save
-print(horzcat(('checksq'), num2str(lidchoice,2)), '-depsc','-r600')
-print(horzcat(('checksq'), num2str(lidchoice,2)), '-dpdf', '-bestfit')
+print(horzcat(('10-checknl'), num2str(lidchoice,2)), '-dpdf', '-bestfit')
+
+%% FIGURE 11 plot of all stress dependence of buoyancy speed
+% PP ball, smaller balls, lid, no-lid cases.
+
+figure(11)
+
+colormap parula
+
+% plot data with lid, with linear fit (which doesn't work very well), 
+% to show that the new lid data still shows the
+% exponential stress dependence
+
+plot(buoyarr(1:12),etaconv(1:12)./slopearr(1:12), '^',...    
+    'LineWidth',2,...
+    'MarkerSize',10,...
+    'MarkerEdgeColor','k',...
+    'MarkerFaceColor',[1,1,0])
+hold on
+
+% plot(buoyarr(13:57),etaconv.*slopearr(13:57), 'o',...    
+%     'LineWidth',2,...
+%     'MarkerSize',10,...
+%     'MarkerEdgeColor',[0,0,0],...
+%     'MarkerFaceColor',[0.5,0.,0.2])
+scatter(buoyarr(13:57),etaconv(13:57)./slopearr(13:57), 90, sizearr(13:57),'o','filled')
+
+box on
+xlabel('\sigma_S [N/m^2]')
+ylabel('\eta_{\rm eff} [Pa\cdot s]')
+%text(3250,.015,'(b)','FontSize',18)
+set(gca,'Yscale','log')
+ylim([.002,2E2])
+xlim([30,250])
+ax=gca;
+ax.FontSize = 14;
+
+c = colorbar('eastoutside');
+c.Label.String = 'Intruder diameter [mm]';
+c.Ticks = [20,25,40];
+
+hold on
+
+% plot three reference lines, slopes and offsets evaluated manually
+xtmp = 10:1:250;
+plot(xtmp,1E4*exp(-xtmp./23),'-.k')
+plot(xtmp,1E3*exp(-xtmp./17),'-.k')
+plot(xtmp,1E2*exp(-xtmp./10),'-.k')
+plot(xtmp,5E2*exp(-xtmp./10),'-.k')
+
+hold off
+
+legend('lid','no lid','\propto e^{-\sigma/\sigma_0}','Location','northwest')
+
+% save
+print('11-risingspeed-both', '-dpdf', '-bestfit')
+
+
 
 %%%%%%%%%%%%%%%%%%%%%% END OF PAPER PICTURES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%% START OF SOME USEFUL SUPPLEMENTARY PICTURES %%%%%%%%%%%%%%%%%%%%%
+
 %% hydrogel level vs density
 
 file_name = 'data_tommaso/rising_hydrogel/data.dat';
