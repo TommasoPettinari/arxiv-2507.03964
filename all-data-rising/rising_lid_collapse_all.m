@@ -313,6 +313,7 @@ for i=1:1:length(masklid)
     scatter(timearr(masklid(i),:),displarr(masklid(i),:), 'k','MarkerEdgeColor',cmap(indexer,:))
     hold on
     plot(timearr(masklid(i),:),displarr(masklid(i),:), 'k','Color',cmap(indexer,:))
+    plot(timearr(masklid(i),:),slopearr_nonlin(masklid(i),33)*timearr(masklid(i),:),'Color',cmap(indexer,:))
 
     if ~isnan(errarr(masklid(i))) 
   %      errorbar(timearr(masklid(i),:),displarr(masklid(i),:),errarr(masklid(i),:),'k')%,'Color',cmap(indexer,:))
@@ -328,7 +329,7 @@ box on
 xlabel('t [sec]')
 ylabel('\delta [mm]')
 text(1300,110,'(a)','FontSize',18)
-xlim([0 1500])
+xlim([0 8000])
 ylim([0, 125])
 ax=gca;
 ax.FontSize = 14;
