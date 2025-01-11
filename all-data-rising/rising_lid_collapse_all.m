@@ -375,6 +375,7 @@ masklid = find(lidonarr == lidchoice & sizearr' == 40);
 cmap = colormap(parula(length(unique(buoyarr(masklid)))));
 
 figure(33)
+
 % show the rescaling of the sped with eta effective
 subplot 211
 
@@ -539,6 +540,54 @@ text(500,58,'(c)','FontSize',14)
 
 %save
 print('8-nostickslip_tommaso', '-dpdf')
+
+%% Figure 8B Mesh data
+
+fnames = dir('data_mesh/*.dat');
+
+numfiles = length(fnames);
+
+figure(31415)
+
+for i=1:numfiles
+    
+    readfile = char(strcat(fnames(i).folder,'/',fnames(i).name));
+    tmp = readmatrix(readfile);
+    
+    displacement = tmp(:,2);
+    offset = displacement(1);
+    n_datapoints = length(displacement);
+    timearry = tmp(:,1);
+    errory = tmp(:,4);
+
+    if mod(i,2)
+        errorbar(timearry,(displacement-offset),errory,'.k')
+        hold on
+        scatter(timearry,(displacement-offset),'^k')
+    else
+        errorbar(timearry,(displacement-offset),errory,'.r')
+        hold on
+        scatter(timearry,(displacement-offset),'or')
+    end
+   
+end
+
+plot([0,140],[0,90],'-.k')
+
+box on
+xlabel('t [sec]')
+ylabel('\delta [mm]')
+%text(3250,.015,'(b)','FontSize',18)
+%set(gca,'Yscale','log')
+%set(gca,'Xscale','log')
+xlim([0 140])
+ylim([0, 90])
+ax=gca;
+ax.FontSize = 14;
+hold off
+
+%save
+print('mesh-example', '-dpdf', '-bestfit')
 
 %% FIGURE 9 Sinking towards a liquid layer - Fluid boundary at bottom  
 
