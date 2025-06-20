@@ -186,13 +186,15 @@ figure(5)
 
 etaconv = (2/9)*deltarho*ballrad^2*9.81;
 
+normy_hydro = etaconv./(Eta2si*slopearr); 
+
 % slopearr is now in cm/min; conversion via Eta2si
 % normalize on the viscosity value at 20 degrees, which turns out to be 0.8244E5
-plot(temparr,etaconv./(Eta2si*slopearr)/0.82444E5, '+',...    
-    'LineWidth',2,...
-    'MarkerSize',10,...
+plot(temparr,etaconv./(Eta2si*slopearr)/normy_hydro(7), 'o',...    
+    'LineWidth',1,...
+    'MarkerSize',7,...
     'MarkerEdgeColor','b',...
-    'MarkerFaceColor',[0.5,0.5,0.5])
+    'MarkerFaceColor',[0,0,1])
 
 hold on
 
@@ -202,17 +204,22 @@ hold on
 celly = T.('C_1');
 velly = T.('dyn_1');
 
-plot(celly,velly,'>k')
+plot(celly,velly/velly(16),'>',...    
+    'LineWidth',1,...
+    'MarkerSize',7,...
+    'MarkerEdgeColor','k',...
+    'MarkerFaceColor',[0,0,0])
 
 %manually insert Arrhenius trends with manually determined coefficients
-plot(xtmp,5.75*exp(-xtmp./11),'-b')
-plot(celly,1.65*exp(-celly./41),'-k')
+xtmp = 15:0.1:30;
+plot(xtmp,4.6*exp(-xtmp./11),'-b')
+plot(celly,1.65*exp(-celly./41)/velly(16),'-k')
 
 box on
 xlabel('Temperature [^oC]')
-ylabel('\eta/\eta_{20} [-]')
+ylabel('\eta/\eta_{17} [-]')
 xlim([15 30])
-ylim([0.45,1.3])
+ylim([0.3,1.1])
 ax=gca;
 ax.FontSize = 14;
 hold on
