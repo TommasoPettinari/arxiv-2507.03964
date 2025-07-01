@@ -1,4 +1,40 @@
 
+%% load previous data from other papers and extract from it:
+%- exponent arrays
+%- sample data for comparison with current work
+
+% bestexparr contains the exponent with the best goodness of fit coefficient
+% in a three-parameter fit of delta = a*t^b + c in which a > 0 and b > 0 and
+% c constrained to a small value (because the zero time point had been
+% substracted already)
+
+% this fit routine has been applied consistently to all data from past
+% experiment
+
+load("data_old/PRL_data.mat")
+
+%check some data; optional: to make example plots
+%line 11, 39, 86
+displarr_ex = displarr([11,39,86],:);
+timearr_ex = timearr([11,39,86],:);
+
+save("examplecreep.mat", "displarr_ex", "timearr_ex", "-mat")
+
+bestexparr_surftens = bestexparr; % the best exponents for the surface tension driven experiments
+
+clear bestexparr % to make sure the new data loads correctly
+
+%% then the SM paper
+
+load("data_old/SM_data.mat")
+
+bestexparr_lid = bestexparr; % the best exponents for the lid stress driven experiments
+
+bestexparr_combined = [bestexparr_lid ; bestexparr_surftens]; % combine in one array
+
+save("bestexparr_combined.mat", "bestexparr_combined","-mat") % save for later use
+
+clear all % empty workspace to process data from current study
 
 %% read data on stress and size dependence of rising behavior
 
@@ -76,20 +112,14 @@ for i=1:numfiles
 
     
     lengarr(i) = datl(1);
-    timearr(i,1:datl) = tmpdata(:,1);
+    timearr(i,1:datl(1)) = tmpdata(:,1);
     % subtract the first data point; the beginning is arbitrary. This procedure is different from previous works as Tom is now video-analyzing data.
-    displarr(i,1:datl) = tmpdata(:,2)-tmpdata(1,2); 
+    displarr(i,1:datl(1)) = tmpdata(:,2)-tmpdata(1,2); 
 
     if contains(tmpstring, 'err') % if there is an error estimate, it will be in the third column.
         errarr(i,1:datl(1)) = tmpdata(:,3);
     end
     
-    %%%%%%%%%%%% we first assume square root behavior:
-    % delta = sqrt(Dx)
-    % delta^2 = Dx
-    % x = time
-    % delta = displacement
-
     xtmp = [timearr(i,1:lengarr(i))];
     deltatmp = [displarr(i,1:lengarr(i))-displarr(i,1)]; %do linear fit. Prefactor is D
 
@@ -234,6 +264,8 @@ figure(1)
 
 maskex = 26; % the filename=hist12 example as picked
 
+%subplot 121
+
 for i=1:1:length(maskex)
     
     scatter(timearr(maskex(i),:),displarr(maskex(i),:), '^k')
@@ -253,29 +285,84 @@ for i=1:1:length(maskex)
 
 end
 
-%  then plot data from the same stress runs but then with a lid
-maskex = maskex - 22; % select the one with lid
+% If desired, plot data from the same stress runs but then with a lid
+% maskex = maskex - 22; % select the one with lid
+% 
+% for i=1:1:length(maskex)
+% 
+%     scatter(timearr(maskex(i),:),displarr(maskex(i),:), 'ob')
+%     hold on
+%     errorbar(timearr(maskex(i),:),displarr(maskex(i),:),0.05*displarr(maskex(i),:),'b')
+% 
+%     plot(timearr(maskex(i),:),displarr(maskex(i),:), '-.b')
+%     fprintf('lidstress = %d \n', buoyarr(maskex(i)))
+% 
+% end
 
-for i=1:1:length(maskex)
-    
-    scatter(timearr(maskex(i),:),displarr(maskex(i),:), 'ob')
-    hold on
-    errorbar(timearr(maskex(i),:),displarr(maskex(i),:),0.05*displarr(maskex(i),:),'b')
 
-    plot(timearr(maskex(i),:),displarr(maskex(i),:), '-.b')
-    fprintf('lidstress = %d \n', buoyarr(maskex(i)))
+hold on
 
-end
-
+xtmp = 0:1000;
+plot(xtmp, 4*xtmp.^.5,'-.b')
 
 box on
 xlabel('t [sec]')
 ylabel('\delta [mm]')
-text(2500,10,'(a)','FontSize',18)
+%text(2500,10,'(b)','FontSize',18)
 xlim([0 300])
 ylim([0, 110])
 ax=gca;
 ax.FontSize = 14;
+
+% make inserts to show power law slopes
+
+timey = 1:1000;
+
+ax3 = axes('Position',[0.2 0.6 0.28 0.28]);
+
+%go back to without lid
+%maskex = maskex + 22; 
+
+for i=1:1:length(maskex)
+
+    scatter(timearr(maskex(i),:),displarr(maskex(i),:), '^k')
+    hold on
+    % a 5% was considered reasonable for these measurements, based on pixel
+    % inaccuracy estimated in positioning
+    errorbar(timearr(maskex(i),:),displarr(maskex(i),:),0.05*displarr(maskex(i),:),'k')
+
+    %for optical improvement, also include a line between the data points
+    plot(timearr(maskex(i),:),displarr(maskex(i),:), '-.k')
+
+    % plot reference line from nonlin fit. #33 is just the linear option
+    % in this set
+    plot(timey,slopearr_nonlin(maskex(i),33)*timey,'-k')
+
+    fprintf('lidstress = %d \n', buoyarr(maskex(i)))
+
+    
+
+end
+
+hold on
+
+plot(xtmp, 4*xtmp.^.5,'-.b')
+
+box on
+%xlabel('t [sec]')
+%ylabel('\delta [mm]')
+text(200,10,'(a)','FontSize',18)
+text(20,30,'1.0','FontSize',18)
+
+xlim([9 450])
+ylim([3, 120])
+ax=gca;
+ax.FontSize = 14;
+
+set(gca,'Xscale','log')
+set(gca,'Yscale','log')
+
+hold off
 
 %save
 print('2-excomp', '-dpdf')
@@ -303,7 +390,7 @@ alphy = 1/fitexpyarr(indexchoice);
 figure(31)
 
 % show an overall family of pp ball data. color is stress
-subplot 211
+subplot 311
 cmap = colormap(parula(length(unique(buoyarr(masklid)))));
 
 for i=1:3:length(masklid)
@@ -336,10 +423,45 @@ ax.FontSize = 14;
 hold off
 c = colorbar('EastOutside');
 c.Label.String = '\sigma_S [Pa]';
-caxis([140,250]);
+clim([140,250]);
+
+%show collapse of the current small data set
+
+subplot 312
+
+for i=1:1:length(masklid) 
+    
+    indexer = find(unique(buoyarr(masklid))==buoyarr(masklid(i)));
+    
+    scatter(timearr(masklid(i),:),(displarr(masklid(i),:)./slopearr_nonlin(masklid(i),indexchoice)).^alphy, 'k','MarkerEdgeColor',cmap(indexer,:))
+    hold on
+
+    if ~isnan(errarr(masklid(i))) 
+        fprintf('errorrrrrrrrrr %d\n', expy)
+    end
+        
+        
+end
+
+plot([1,10000],[1,10000],'-.k')
+
+box on
+xlabel('t [sec]')
+ylabel(horzcat('(\delta\eta_{eff})^{',num2str(alphy),'} [A.U]'))
+ax=gca;
+ax.FontSize = 14;
+hold off
+xlim([5 10000])
+ylim([5 10000])
+set(gca,'Yscale','log')
+set(gca,'Xscale','log')
+
+text(3250,20,'(b)','FontSize',18)
+clim([0,250]);
+
 
 % display the stress dependence of the effective viscosity
-subplot 212
+subplot 313
 
 % masklid has the selection as chosen above
 minerr = etaconv(masklid)./slopearr(masklid)-etaconv(masklid)./conf_lin(masklid,2,1);
@@ -353,7 +475,7 @@ errorbar(buoyarr(masklid),etaconv(masklid)./slopearr(masklid),minerr,maxerr,'.k'
 box on
 xlabel('\sigma_S [N/m^2]')
 ylabel('\eta_{\rm eff} [Pa\cdot s]')
-text(235,60,'(b)','FontSize',18)
+text(235,60,'(c)','FontSize',18)
 set(gca,'Yscale','log')
 ylim([.5,100]);
 xlim([120,250]);
@@ -415,12 +537,10 @@ text(3250,10,'(a)','FontSize',18)
 
 c = colorbar('EastOutside');
 c.Label.String = '\sigma_S [Pa]';
-caxis([0,250]);
+clim([0,250]);
 
+% show exponential behavior
 subplot 212
-
-%scatter(buoyarr(13:57),etaconv(13:57)./slopearr(13:57), 90, buoyarr(13:57), 'o','filled')
-% or exclude some
 scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
 
 hold on
@@ -589,11 +709,312 @@ print('9-nostickslip_tommaso', '-dpdf')
 % 
 % look elsewhere in repository
 
-%% FIGURE 9 Visualization of the surface flow
-% 
-% just sample images from typical experiments
+%% Figure 9 plot lid vs no-lid
 
-%% Figure 10 Mesh data
+figure(111)
+% select the data sets that are pairs of lid & no-lid:
+% 2 & 24
+% 3 & 25
+% 4 & 26 <-- cherry picked for paper because it shows the clearest difference
+% 5 & 27
+% 6 % 28
+% 7 & 29
+% 8 & 30
+
+maskex = 26; % the filename=hist12 example as picked
+
+%subplot 121
+
+for i=1:1:length(maskex)
+    
+    scatter(timearr(maskex(i),:),displarr(maskex(i),:), '^k')
+    hold on
+    % a 5% was considered reasonable for these measurements, based on pixel
+    % inaccuracy estimated in positioning
+    errorbar(timearr(maskex(i),:),displarr(maskex(i),:),0.05*displarr(maskex(i),:),'k')
+    
+    %for optical improvement, also include a line between the data points
+    plot(timearr(maskex(i),:),displarr(maskex(i),:), '-.k')
+
+
+    % plot reference line from nonlin fit. #33 is just the linear option
+    % in this set
+    plot(timearr(maskex(i),:),slopearr_nonlin(maskex(i),33)*timearr(maskex(i),:),'-k')
+
+
+    fprintf('lidstress = %d \n', buoyarr(maskex(i)))
+
+
+end
+
+% then plot data from the same stress runs but then with a lid
+maskex = maskex - 22; % select the one with lid
+
+for i=1:1:length(maskex)
+
+    scatter(timearr(maskex(i),:),displarr(maskex(i),:), 'ob')
+    hold on
+    errorbar(timearr(maskex(i),:),displarr(maskex(i),:),0.05*displarr(maskex(i),:),'b')
+
+    plot(timearr(maskex(i),:),displarr(maskex(i),:), '-.b')
+    fprintf('lidstress = %d \n', buoyarr(maskex(i)))
+
+end
+hold on
+
+box on
+xlabel('t [sec]')
+ylabel('\delta [mm]')
+%text(2500,10,'(b)','FontSize',18)
+xlim([0 300])
+ylim([0, 110])
+ax=gca;
+ax.FontSize = 14;
+
+
+% make inserts to show power law slopes
+
+timey = 1:1000;
+
+ax2 = axes('Position',[0.6 0.15 0.28 0.28]);
+
+for i=1:1:length(maskex)
+
+    scatter(timearr(maskex(i),:),displarr(maskex(i),:), 'ob')
+    hold on
+    errorbar(timearr(maskex(i),:),displarr(maskex(i),:),0.05*displarr(maskex(i),:),'b')
+
+    % plot reference line from nonlin fit. #13 is the sqrt option, #22 is
+    % the best fit in this set
+    %plot(timearr(maskex(i),:),slopearr_nonlin(maskex(i),22)*timearr(maskex(i),:).^fitexpyarr(22),'-b')
+    plot(timey,slopearr_nonlin(maskex(i),22)*timey.^fitexpyarr(22),'-b')
+
+
+    plot(timearr(maskex(i),:),displarr(maskex(i),:), '-.b')
+    fprintf('lidstress = %d \n', buoyarr(maskex(i)))
+
+end
+
+box on
+%xlabel('t [sec]')
+%ylabel('\delta [mm]')
+text(200,10,'(b)','FontSize',18)
+text(20,30,'0.73','FontSize',18)
+xlim([9 450])
+ylim([3, 120])
+ax=gca;
+ax.FontSize = 14;
+
+set(gca,'Xscale','log')
+set(gca,'Yscale','log')
+
+hold off
+
+ax3 = axes('Position',[0.2 0.6 0.28 0.28]);
+
+%go back to without lid
+maskex = maskex + 22; 
+
+for i=1:1:length(maskex)
+
+
+    scatter(timearr(maskex(i),:),displarr(maskex(i),:), '^k')
+    hold on
+    % a 5% was considered reasonable for these measurements, based on pixel
+    % inaccuracy estimated in positioning
+    errorbar(timearr(maskex(i),:),displarr(maskex(i),:),0.05*displarr(maskex(i),:),'k')
+
+
+    %for optical improvement, also include a line between the data points
+    plot(timearr(maskex(i),:),displarr(maskex(i),:), '-.k')
+
+
+    % plot reference line from nonlin fit. #33 is just the linear option
+    % in this set
+    plot(timey,slopearr_nonlin(maskex(i),33)*timey,'-k')
+
+
+    fprintf('lidstress = %d \n', buoyarr(maskex(i)))
+
+end
+
+
+box on
+%xlabel('t [sec]')
+%ylabel('\delta [mm]')
+text(200,10,'(a)','FontSize',18)
+text(20,30,'1.0','FontSize',18)
+
+
+xlim([9 450])
+ylim([3, 120])
+ax=gca;
+ax.FontSize = 14;
+
+
+set(gca,'Xscale','log')
+set(gca,'Yscale','log')
+
+hold off
+
+%save
+print('9-excomp-lid', '-dpdf')
+
+
+%% FIGURE 10 verify nonlinearity with lid 
+% (a) Time series for cases with lid plus (b) collapse 
+
+indexchoice = 23;
+
+lidchoice = 1;
+alphy = 1/fitexpyarr(indexchoice);
+
+% excluding the non-PPball
+masklid = find(lidonarr == lidchoice & sizearr' == 40);
+
+figure(10)
+
+subplot(2,2,[1 2])
+cmap = colormap(parula(length(unique(buoyarr(masklid)))));
+
+for i=1:1:length(masklid)
+    
+    indexer = find(unique(buoyarr(masklid))==buoyarr(masklid(i)));
+    
+
+    scatter(timearr(masklid(i),:),displarr(masklid(i),:), 'k','MarkerEdgeColor',cmap(indexer,:))
+    hold on
+    plot(timearr(masklid(i),:),displarr(masklid(i),:), 'k','Color',cmap(indexer,:))
+
+end
+
+box on
+xlabel('t [sec]')
+ylabel('\delta [mm]')
+xlim([0 4000])
+ylim([.01, 110])
+ax=gca;
+ax.FontSize = 14;
+hold off
+c = colorbar('EastOutside');
+c.Label.String = '\sigma_S [Pa]';
+clim([0,250]);
+text(3550,90,'(a)','FontSize',18)
+
+
+subplot 223
+
+for i=1:1:length(masklid) 
+    
+        indexer = find(unique(buoyarr(masklid))==buoyarr(masklid(i)));
+    
+
+    scatter(timearr(masklid(i),:),(displarr(masklid(i),:)./slopearr_nonlin(masklid(i),indexchoice)).^alphy, 'k','MarkerEdgeColor',cmap(indexer,:))
+    hold on
+    
+    %scatter(timearr(masklid(i),:),(1./slopearr(masklid(i)))*displarr(masklid(i),:).^alphy, 'k','MarkerEdgeColor',cmap(indexer,:))
+    %hold on
+    %plot(timearr(masklid(i),:),(1./slopearr(masklid(i)))*displarr(masklid(i),:).^alphy, 'k','Color',cmap(indexer,:))
+
+    if ~isnan(errarr(masklid(i))) 
+  %      errorbar(timearr(masklid(i),:),(1./slopearr(masklid(i)))*displarr(masklid(i),:).^alphy,errarr(masklid(i),:),'k')%,'Color',cmap(indexer,:))
+        fprintf('errorrrrrrrrrr %d\n', expy)
+    end
+        
+        
+end
+
+plot([1,20000],0.8*[1,20000],'-.k')
+
+box on
+xlabel('t [sec]')
+ylabel(horzcat('(\delta\eta_{eff})^{',num2str(alphy,3),'} [A.U]'))
+ax=gca;
+ax.FontSize = 14;
+hold off
+
+clim([0,250])
+xlim([5 20000])
+%ylim([1, 2E6])
+set(gca,'Yscale','log')
+set(gca,'Xscale','log')
+
+text(5000,5,'(b)','FontSize',18)
+yticks([1,10,100,1000,10000,100000]);
+%yticklabels('10^0', '10^1', '10^2', '10^3', '10^4', '10^5')
+
+subplot 224
+
+% plot lid case eta_eff
+scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
+
+hold on
+
+box on
+xlabel('\sigma_S [N/m^2]')
+ylabel('\eta_{\rm eff} [Pa\cdot s]')
+text(230,80,'(c)','FontSize',18)
+set(gca,'Yscale','log')
+ylim([.5,150]);
+xlim([130,250]);
+ax=gca;
+ax.FontSize = 14;
+
+% plot reference line from earlier, same hydrogel sample
+xtmp = 10:1:250;
+plot(xtmp,7E3*exp(-xtmp./27),'-.k')
+hold off
+
+%save
+print('10-checknl', '-dpdf', '-bestfit')
+
+%% Figure 11 v chart
+
+% get data from previous experiments: 244 experiments
+load("bestexparr_combined.mat")
+
+% combine with current data = 57 experiments
+bestexparrall = [bestexparr_combined; bestexparr;];
+
+figure(78)
+
+x = [ones(1,256)]; % 2*ones(1,12) 3*ones(1,55)];
+y1 = bestexparrall(1:256);
+y2 = bestexparrall(244:256);
+y3 = bestexparrall(257:end);
+%y = [y1 y2 y3];
+violinplot(1,y1)
+hold on
+scatter(1,mean(y1),'ok','filled')
+errorbar(1,mean(y1),std(y1),'k');
+
+violinplot(2,y2)
+scatter(2,mean(y2),'ok','filled')
+errorbar(2,mean(y2),std(y2),'k');
+violinplot(3,y3)
+scatter(3,mean(y3),'ok','filled')
+errorbar(3,mean(y3),std(y3),'k');
+
+plot([0,4],[.5,.5],'-.k')
+plot([0,4],[1,1],'-.k')
+
+xlim([.5,3.5])
+
+xticks([1,2,3])
+xticklabels({'Rigid','Floating','Free'})
+ylabel('\alpha','FontSize',18)
+
+ax = gca;
+ax.FontSize = 14;
+
+hold off
+box on
+
+% save
+print('exponent-lid-stats', '-depsc','-r600')
+print('exponent-lid-stats', '-dpdf', '-bestfit')
+
+%% Figure 12 Mesh data
 
 fnames = dir('data_mesh/*.dat');
 
@@ -641,7 +1062,7 @@ hold off
 %save
 print('mesh-example', '-dpdf', '-bestfit')
 
-%% FIGURE 11 Sinking towards a liquid layer - Fluid boundary at bottom  
+%% FIGURE 13 Sinking towards a liquid layer - Fluid boundary at bottom  
 
 figure(3)
 
@@ -723,126 +1144,9 @@ text(1800,500,'(b)','FontSize',14)
 %save
 print('9-sinking with layer', '-dpdf', '-bestfit')
 
-%% FIGURE 12 verify nonlinearity with lid 
-% (a) Time series for cases with lid plus (b) collapse 
-
-indexchoice = 23;
-
-lidchoice = 1;
-alphy = 1/fitexpyarr(indexchoice);
-
-masklid = find(lidonarr == lidchoice);
-% excluding the non-PPball
-masklid = find(lidonarr == lidchoice & sizearr' == 40);
-
-figure(10)
-
-subplot(2,2,[1 2])
-cmap = colormap(parula(length(unique(buoyarr(masklid)))));
-
-for i=1:1:length(masklid)
-    
-    indexer = find(unique(buoyarr(masklid))==buoyarr(masklid(i)));
-    
-
-    scatter(timearr(masklid(i),:),displarr(masklid(i),:), 'k','MarkerEdgeColor',cmap(indexer,:))
-    hold on
-    plot(timearr(masklid(i),:),displarr(masklid(i),:), 'k','Color',cmap(indexer,:))
-
-    if ~isnan(errarr(masklid(i))) 
-  %      errorbar(timearr(masklid(i),:),displarr(masklid(i),:),errarr(masklid(i),:),'k')%,'Color',cmap(indexer,:))
-        fprintf('errorrrrrrrrrr %d\n', expy)
-    end
-        
-        
-
-    
-end
-
-box on
-xlabel('t [sec]')
-ylabel('\delta [mm]')
-xlim([0 4000])
-ylim([.01, 110])
-ax=gca;
-ax.FontSize = 14;
-hold off
-c = colorbar('EastOutside');
-c.Label.String = '\sigma_S [Pa]';
-%colorbar('Ticks',[0,100,200,300],...
-%         'TickLabels',{'0','100','200','300'})
-caxis([0,250]);
-text(3550,90,'(a)','FontSize',18)
-
-
-subplot 223
-
-for i=1:1:length(masklid) 
-    
-        indexer = find(unique(buoyarr(masklid))==buoyarr(masklid(i)));
-    
-
-    scatter(timearr(masklid(i),:),(displarr(masklid(i),:)./slopearr_nonlin(masklid(i),indexchoice)).^alphy, 'k','MarkerEdgeColor',cmap(indexer,:))
-    hold on
-    
-    %scatter(timearr(masklid(i),:),(1./slopearr(masklid(i)))*displarr(masklid(i),:).^alphy, 'k','MarkerEdgeColor',cmap(indexer,:))
-    %hold on
-    %plot(timearr(masklid(i),:),(1./slopearr(masklid(i)))*displarr(masklid(i),:).^alphy, 'k','Color',cmap(indexer,:))
-
-    if ~isnan(errarr(masklid(i))) 
-  %      errorbar(timearr(masklid(i),:),(1./slopearr(masklid(i)))*displarr(masklid(i),:).^alphy,errarr(masklid(i),:),'k')%,'Color',cmap(indexer,:))
-        fprintf('errorrrrrrrrrr %d\n', expy)
-    end
-        
-        
-end
-
-plot([1,20000],0.8*[1,20000],'-.k')
-
-box on
-%plot([10,3000],[10,3000],'-.k')
-xlabel('t [sec]')
-ylabel(horzcat('(\delta\eta_{eff})^{',num2str(alphy,3),'} [A.U]'))
-%text(3250,500,'(c)','FontSize',18)
-ax=gca;
-ax.FontSize = 14;
-hold off
-
-caxis([0,250])
-xlim([5 20000])
-%ylim([1, 2E6])
-set(gca,'Yscale','log')
-set(gca,'Xscale','log')
-
-text(5000,5,'(b)','FontSize',18)
-yticks([1,10,100,1000,10000,100000]);
-yticklabels('10^0', '10^1', '10^2', '10^3', '10^4', '10^5')
-
-subplot 224
-
-% plot lid case eta_eff
-scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
-
-hold on
-
-box on
-xlabel('\sigma_S [N/m^2]')
-ylabel('\eta_{\rm eff} [Pa\cdot s]')
-text(230,80,'(c)','FontSize',18)
-set(gca,'Yscale','log')
-ylim([.5,150]);
-xlim([130,250]);
-ax=gca;
-ax.FontSize = 14;
-
-% plot reference line from earlier, same hydrogel sample
-xtmp = 10:1:250;
-plot(xtmp,7E3*exp(-xtmp./27),'-.k')
-hold off
-
-%save
-print('11-checknl', '-dpdf', '-bestfit')
-
+%% FIGURE 14 Visualization of the surface flow
+% 
+% just sample images from typical experiments
 
 
 %%%%%%%%%%%%%%%%%%%%%% END OF PAPER PICTURES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -913,4 +1217,51 @@ print('level-hydrogel', '-depsc','-r600')
 print('level-hydrogel', '-dpdf', '-bestfit')
 
 %%%%% END OF SUPPL. PICTURES %%%%
+
+%% Fig XX Comparison with old data %%%%%%
+
+
+
+figure(1)
+
+subplot 121
+
+% first show the data from intruders moving towards rigid boundary
+plot(1:256,bestexparrall(1:256), 'bo')
+hold on
+scatter(244:256,bestexparrall(244:256), 'bo', 'Fill')% from the current new data
+
+% then show the current data: sphere rising towards free surface
+plot(257:length(bestexparrall),bestexparrall(257:end), 'r>')
+hold off
+
+xlabel('Experiment #')
+ylabel('best \alpha [-]')
+legend('Rigid base','Floating lid', 'Free')
+ylim([.1,1.5]);
+xlim([0,312]);
+
+% represent the same data in a histogram
+subplot 122
+
+binny = bexpy:3*expyr:eexpy;
+
+histogram(bestexparrall(1:244),binny) % previous data
+hold on
+histogram(bestexparrall(245:256),binny) % rising towards floating lid
+histogram(bestexparrall(257:end),binny) % rising towards free surface
+
+xlabel('\alpha')
+ylabel('Counts')
+
+hold off
+
+% save
+print('exponent-lid', '-depsc','-r600')
+print('exponent-lid', '-dpdf', '-bestfit')
+
+% for just the rising data:
+% trend is clearly with peak around 1, but sigma is large. 
+% what can be included is the data from the first paper and the second
+% paper: those have clear peaks around 0.5 (but also broad).
 
