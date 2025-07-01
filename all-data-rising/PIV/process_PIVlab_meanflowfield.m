@@ -140,7 +140,7 @@ for i=offs:(lengy-1)
     imshow(grey_tmp, 'colormap', jet);
     
     hold on;
-    plot(centerpos(i,2)-imageSize(2)/2, centerpos(i,1)-imageSize(1)/2, 'r+', 'MarkerSize', 100);  %centering fix; somehow there is an offset; presumably due to size of convolution image
+    plot(centerpos(i,2)-imageSize(2)/2, centerpos(i,1)-imageSize(1)/2, 'r+', 'MarkerSize', 100);  %centering fix; there is an offset, due to size of convolution image
     
     % process only subset of grid points close to ball
     xs = (centerpos(i,2)-xmax):-interstep:(centerpos(i,2)-xmin);
@@ -153,8 +153,8 @@ for i=offs:(lengy-1)
     % PIV data extraction from .mat export    
     PIVx = cell2mat(x(i));
     PIVy = cell2mat(y(i));
-    PIVu = cell2mat(u_original(i));
-    PIVv = cell2mat(v_original(i));
+    PIVu = cell2mat(u_filtered(i));
+    PIVv = cell2mat(v_filtered(i));
     
     %plot the gridpoints where data was obtained
     scatter(PIVx,PIVy,'ok')
@@ -195,21 +195,24 @@ pix_per_frame_to_cm_per_sec = pix_to_cm / frame_to_sec;
 
 % compute mean of field in comoving frame
 
-Ball_mean_velocity = nanmean(centervelocities(315:1000,:),1)*pix_per_frame_to_cm_per_sec ;
-ball_vertical_velocity = (centerpos(1600,1) - centerpos(1,1))/1600*pix_per_frame_to_cm_per_sec ;
+%Ball_mean_velocity = nanmean(centervelocities(315:1000,:),1)*pix_per_frame_to_cm_per_sec ;
+%ball_vertical_velocity = (centerpos(1600,1) - centerpos(1,1))/1600*pix_per_frame_to_cm_per_sec ;
 
-Uqarrmean = nanmean(Uqarr(:,:,315:1000),3)*pix_per_frame_to_cm_per_sec;
-Vqarrmean = nanmean(Vqarr(:,:,315:1000),3)*pix_per_frame_to_cm_per_sec;
+%Uqarrmean = nanmean(Uqarr(:,:,315:1000),3)*pix_per_frame_to_cm_per_sec;
+%Vqarrmean = nanmean(Vqarr(:,:,315:1000),3)*pix_per_frame_to_cm_per_sec;
+
+Uqarrmean = nanmean(Uqarr(:,:,1:499),3)*pix_per_frame_to_cm_per_sec;
+Vqarrmean = nanmean(Vqarr(:,:,1:499),3)*pix_per_frame_to_cm_per_sec;
 
 %change the velocity of pixels containing the ball to the actual ball velocity
-for i=1:92
-    for j=1:92
-        if (i-45)^2 + (j-46)^2 < 300
-            Uqarrmean(i,j) = Ball_mean_velocity(2) ;
-            Vqarrmean(i,j) = Ball_mean_velocity(1) ;
-        end
-    end
-end
+%for i=1:92
+%    for j=1:92
+%        if (i-45)^2 + (j-46)^2 < 300
+%            Uqarrmean(i,j) = Ball_mean_velocity(2) ;
+%            Vqarrmean(i,j) = Ball_mean_velocity(1) ;
+%        end
+%    end
+%end
 
 size_x = [0 (xmin-xmax)*pix_to_cm];
 size_y = [(ymin-ymax)*pix_to_cm 0];
