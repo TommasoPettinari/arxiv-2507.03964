@@ -96,10 +96,22 @@ save('PIV/center_position')
 %You can run the script from here
 load('PIV/center_position')
 
+%select the relevant part of the video                
+start_frame = 1000;
+end_frame = 2000;
+freq_frame = 10;
+
+lengy = (end_frame - start_frame) / freq_frame; %I store how many images
+
 % we note that the ball is slightly drifting sideways in the central interval (the one we are interested in)
-%here we apply a correction on that drift
-for i=600:1000
-    centerpos(i,2) = centerpos(i,2) - round((i-600)*5/400);
+% so here we apply a correction on that drift
+
+sstart = 600;
+eend = 1000;
+ddiff = eend - sstart;
+
+for i=sstart:eend
+    centerpos(i,2) = centerpos(i,2) - round((i-sstart)*5/ddiff);
 end
 
 centervelocities = NaN(lengy-1,2);
@@ -195,7 +207,7 @@ pix_per_frame_to_cm_per_sec = pix_to_cm / frame_to_sec;
 
 % compute mean of field in comoving frame
 
-%Ball_mean_velocity = nanmean(centervelocities(315:1000,:),1)*pix_per_frame_to_cm_per_sec ;
+Ball_mean_velocity = nanmean(centervelocities(315:1000,:),1)*pix_per_frame_to_cm_per_sec ;
 %ball_vertical_velocity = (centerpos(1600,1) - centerpos(1,1))/1600*pix_per_frame_to_cm_per_sec ;
 
 %Uqarrmean = nanmean(Uqarr(:,:,315:1000),3)*pix_per_frame_to_cm_per_sec;
@@ -204,15 +216,15 @@ pix_per_frame_to_cm_per_sec = pix_to_cm / frame_to_sec;
 Uqarrmean = nanmean(Uqarr(:,:,1:499),3)*pix_per_frame_to_cm_per_sec;
 Vqarrmean = nanmean(Vqarr(:,:,1:499),3)*pix_per_frame_to_cm_per_sec;
 
-%change the velocity of pixels containing the ball to the actual ball velocity
-%for i=1:92
-%    for j=1:92
-%        if (i-45)^2 + (j-46)^2 < 300
-%            Uqarrmean(i,j) = Ball_mean_velocity(2) ;
-%            Vqarrmean(i,j) = Ball_mean_velocity(1) ;
-%        end
-%    end
-%end
+%change the velocity of block containing the ball to the actual ball velocity (each block is 5 pixels)
+for i=1:92
+    for j=1:92
+        if (i-45)^2 + (j-46)^2 < 300
+            Uqarrmean(i,j) = Ball_mean_velocity(2) ;
+            Vqarrmean(i,j) = Ball_mean_velocity(1) ;
+        end
+    end
+end
 
 size_x = [0 (xmin-xmax)*pix_to_cm];
 size_y = [(ymin-ymax)*pix_to_cm 0];
@@ -310,3 +322,46 @@ close(gcf);
 close(videoObj);
 clear obj
 
+
+%% SECTION 7. Validation: signal-to-noise ratio
+
+
+size(correlation_matrices)
+
+%choose the frame
+j= 20;
+
+size(correlation_matrices{j})
+
+%choose the interrogation area for which we want to see the correlation matrix
+i = 1000;
+
+correlation_matrices{j}(:,:,i)
+
+%show correlation matrix
+
+surf(correlation_matrices{j}(:,:,i))
+
+%% SECTION 8. Characterization of noise
+
+figure;
+
+%vertical velocity
+subplot(1,2,1)
+
+%v_vel = v_filtered(:);
+v_vel = cat(1,v_vel, v_filtered(:));
+size(v_vel)
+histfit(v_vel)
+pd = fitdist(v_vel,'Normal')
+title('V distribution')
+
+%horizontal velocity
+subplot(1,2,2)
+
+%h_vel = u_filtered(:);
+h_vel = cat(1, h_vel, u_filtered(:));
+size(h_vel)
+histfit(h_vel)
+pd = fitdist(h_vel, 'Normal')
+title('U distribution')
