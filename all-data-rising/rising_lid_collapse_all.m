@@ -352,7 +352,7 @@ box on
 %xlabel('t [sec]')
 %ylabel('\delta [mm]')
 text(200,10,'(a)','FontSize',18)
-text(20,30,'1.0','FontSize',18)
+text(20,30,'0.5','FontSize',18)
 
 xlim([9 450])
 ylim([3, 120])
@@ -447,7 +447,7 @@ plot([1,10000],[1,10000],'-.k')
 
 box on
 xlabel('t [sec]')
-ylabel(horzcat('(\delta\eta_{eff})^{',num2str(alphy),'} [A.U]'))
+ylabel(horzcat('(\delta/U)^{',num2str(alphy),'} [sec]'))
 ax=gca;
 ax.FontSize = 14;
 hold off
@@ -524,7 +524,7 @@ plot([1,10000],[1,10000],'-.k')
 
 box on
 xlabel('t [sec]')
-ylabel(horzcat('(\delta\eta_{eff})^{',num2str(alphy),'} [A.U]'))
+ylabel(horzcat('(\delta/U)^{',num2str(alphy),'} [sec]'))
 ax=gca;
 ax.FontSize = 14;
 hold off
@@ -928,7 +928,7 @@ plot([1,20000],0.8*[1,20000],'-.k')
 
 box on
 xlabel('t [sec]')
-ylabel(horzcat('(\delta\eta_{eff})^{',num2str(alphy,3),'} [A.U]'))
+ylabel(horzcat('(\delta/\eta_{eff})^{',num2str(alphy,3),'} [A.U.]'))
 ax=gca;
 ax.FontSize = 14;
 hold off
@@ -946,23 +946,35 @@ yticks([1,10,100,1000,10000,100000]);
 subplot 224
 
 % plot lid case eta_eff
-scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
+% we can apply the eta conversion factor for a fair comparison with the units
+% in Fig 3. However, that doesn't make much sense as the relevant
+% prefactors were also raised to a fractional power
+% scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
+
+% plotting 1/prefactor 
+scatter(buoyarr(masklid),1./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
+
 
 hold on
 
 box on
 xlabel('\sigma_S [N/m^2]')
 ylabel('\eta_{\rm eff} [Pa\cdot s]')
-text(230,80,'(c)','FontSize',18)
+text(230,100,'(c)','FontSize',18)
 set(gca,'Yscale','log')
-ylim([.5,150]);
+ylim([1,250]);
 xlim([130,250]);
 ax=gca;
 ax.FontSize = 14;
 
 % plot reference line from earlier, same hydrogel sample
-xtmp = 10:1:250;
-plot(xtmp,7E3*exp(-xtmp./27),'-.k')
+xtmp = 1:1:250;
+
+% the reference line for the etaconv option
+% plot(xtmp,7E3*exp(-xtmp./27),'-.k')
+
+% when the etaconv factor is omitted, this function fits better
+plot(xtmp,6E4*exp(-xtmp./23),'-.k')
 hold off
 
 %save
