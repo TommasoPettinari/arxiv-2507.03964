@@ -1,0 +1,794 @@
+
+%% read data on stress and size dependence of rising behavior
+
+fnames = dir('data_small\*.dat');
+numfiles = length(fnames);
+
+lidweightarr = NaN(numfiles,1);
+sizearr = NaN(numfiles,1);
+addedweightarr = NaN(numfiles,1);
+lengarr = NaN(numfiles,1);
+
+timearr = NaN(numfiles, 50); % make enough space
+displarr = NaN(numfiles, 50);
+errarr = NaN(numfiles, 50);
+
+% for creep curves
+slopearr = NaN(numfiles,1);
+offsetarr = NaN(numfiles,1);
+errorarr = NaN(numfiles,2);
+
+% for lin curves
+slopearr_lin = NaN(numfiles,1);
+offsetarr_lin = NaN(numfiles,1);
+errorarr_lin = NaN(numfiles,2);
+conf_lin = NaN(numfiles,2,2);
+
+%settings to extract best fit exponent
+bexpy = 0.2; % lower exp
+expyr = 0.025; % step exponent
+eexpy = 1.4; % max exp
+expyarr = NaN(numfiles,1+round((eexpy-bexpy)/expyr)); % save all exp fit rsquares here
+stdarr = NaN(numfiles,1+round((eexpy-bexpy)/expyr)); % stats of residuals
+kurtarr = NaN(numfiles,1+round((eexpy-bexpy)/expyr)); % kurtosis stats of residuals
+skewarr = NaN(numfiles,1+round((eexpy-bexpy)/expyr)); % skewness stats of residuals
+distopyarr = NaN(numfiles,1+round((eexpy-bexpy)/expyr)); % distance to optimum
+
+% extract prefactors for all nonlin fits (new for these data)
+fitexpyarr = bexpy:expyr:eexpy;
+slopearr_nonlin = NaN(numfiles,length(fitexpyarr));
+offsetarr_nonlin = NaN(numfiles,length(fitexpyarr));
+exparr_nonlin = NaN(numfiles,length(fitexpyarr));
+conf_nonlin = NaN(numfiles,2,2);
+
+bestexparr = NaN(numfiles,1); 
+optexparr = NaN(numfiles,1);
+
+typearr = []; % save type: cyl or sphere
+lidonarr = []; % extract whether lid is on or not
+
+for i=1:numfiles
+    
+    if ~mod(i,2), fprintf('numfile # %d\n', i); end
+    
+    % units all in mm and seconds!!!!!!!!!!
+    readfile = char(fnames(i).name)
+    readfiletotal = char(horzcat(fnames(i).folder,'\',fnames(i).name));
+    
+
+    
+    typearr{i} = readfile(12:16);
+    sizearr(i) = str2num(readfile(17:22))/1000; % in mm all data listed is radius; 
+    
+    tmp = importdata(readfiletotal);
+    tmpdata = tmp.data;
+    tmpstring = tmp.textdata;
+    tmpstring = tmpstring{1};
+    datl = size(tmpdata);
+    
+    
+    %extract lid status
+    if strfind(readfile,'l'),
+        lidonarr(i) = 1;
+    else
+        lidonarr(i) = 0;
+    end
+
+    
+    lengarr(i) = datl(1);
+    timearr(i,1:datl(1)) = tmpdata(:,1);
+    % subtract the first data point; the beginning is arbitrary. This procedure is different from previous works as Tom is now video-analyzing data.
+    displarr(i,1:datl(1)) = tmpdata(:,2)-tmpdata(1,2); 
+
+    if contains(tmpstring, 'err') % if there is an error estimate, it will be in the third column.
+        errarr(i,1:datl(1)) = tmpdata(:,3);
+    end
+    
+    xtmp = [timearr(i,1:lengarr(i))];
+    deltatmp = [displarr(i,1:lengarr(i))-displarr(i,1)]; %do linear fit. Prefactor is D
+
+
+    % fit poly1, offset should be zero hence added point at origin
+    [fitobj,gof2] = fit(xtmp',deltatmp','poly1');
+
+    tmp = coeffvalues(fitobj);    
+    %prefactor is slope on y^2(t) plot
+    slopearr(i) = tmp(1);
+    offsetarr(i) = tmp(2);
+    errorarr(i,1) = gof2.rmse;%/datl(1);
+    errorarr(i,2) = gof2.rsquare;
+    
+    %%%%%%%%%%%%%%%% now fit the linear parts. may not exist for lid
+    %%%%%%%%%%%%%%%% experiments
+    deltatmp = [displarr(i,1:lengarr(i))];
+    
+    % fit poly1, offset should be zero hence added point at origin
+    [fitobj,gof2] = fit(xtmp',deltatmp','poly1');
+    
+    %figure
+    %plot(fitobj,xtmp',deltatmp')
+    
+    tmp = coeffvalues(fitobj);    
+    slopearr_lin(i) = tmp(1);
+    offsetarr_lin(i) = tmp(2);
+    errorarr_lin(i,1) = gof2.rmse;%/datl(1);
+    errorarr_lin(i,2) = gof2.rsquare;
+    conf_lin(i,:,:) = confint(fitobj,0.95); 
+
+    if lengarr(i) > 3
+    
+        %%%%%%%%%%%%%%%% fit a range of different exponents just to see which
+        %%%%%%%%%%%%%%%% might work best
+        xtmp = timearr(i,2:lengarr(i));
+        deltatmp = displarr(i,2:lengarr(i))-displarr(i,1);
+    
+        ctr = 0;
+        for expy = bexpy:expyr:eexpy
+            ctr = ctr + 1;
+            opty = fitoptions('power2','Lower', [0,expy,-.0010], 'Upper', [Inf,expy,.0010]);
+            %opty = fitoptions('power1','Lower', [0,expy], 'Upper', [Inf,expy]);
+           %[fitobj,gof2] = fit(xtmp',deltatmp','power2',opty);
+           [fitobj,gof2] = fit(xtmp',deltatmp','power2',opty);
+           expyarr(i,ctr) = gof2.rsquare;
+           %thought: check stats of residuals
+           resi = fitobj(xtmp)-deltatmp';
+           stdarr(i,ctr) = nanstd(resi);
+           kurtarr(i,ctr) = kurtosis(resi);
+           skewarr(i,ctr) = skewness(resi);
+    
+           coiffure = coeffvalues(fitobj);
+           exparr_nonlin(i,ctr) = expy; 
+           slopearr_nonlin(i,ctr) = coiffure(1);
+           offsetarr_nonlin(i,ctr) = coiffure(3);
+        end
+    
+        [~,indexy] = max(expyarr(i,:));
+        bestexparr(i) = bexpy+(indexy-1)*expyr;
+        
+        distopyarr(i,:) = sqrt(skewarr(i,:).^2 + (kurtarr(i,:)-3).^2 + (gradient(expyarr(i,:)).^2));
+        [~,indexy] = min(distopyarr(i,:));
+        optexparr(i) = bexpy+(indexy-1)*expyr;
+
+    end %if long enough
+end
+
+sizearr = 2*sizearr; % to get diameter
+
+% fix zeros in timearr; some files contain spurious zeros
+timearr(find(timearr == 0)) = NaN;
+timearr(:,1) = 0;
+
+fprintf('done\n')
+
+close all
+
+%% some admin stuff: extract buoyancy data
+
+% buoyancy force comes from the weight of displaced volume minus the weight
+% from intruder
+
+% weight of displaced volume: rho * 4/3pir^3
+% assume water density = 1000
+% convert to grams for easier calcs
+% sizearr has diameters in mm
+
+wdisplvol = 1000*1000*0.333*pi()*4*(sizearr/2000).^3; % in grams, weight of displaced volume
+
+% read the names and properties of the experimental data files
+weightarr = NaN(1,numfiles)';
+
+% add all experimental info to the database
+
+for i=1:numfiles
+    
+    if ~mod(i,2), fprintf('numfile # %d\n', i); end
+    readfile = char(fnames(i).name);
+
+    weightarr(i) = str2num(readfile(6:10))/1000; % in grams; % weight of ball comes from filename, in grams
+
+    %walk through file list in tmpnames
+    for j=1:numfiles+1
+        
+        surfy = pi()*(sizearr(i)/2000)^2; % surface area compute from diameter
+        buoyarr(i) = abs(9.81*(wdisplvol(i)-weightarr(i))/1000/surfy); % buoyancy stress is g*grams/surface area
+       
+    end
+
+end
+
+% Some more admin for buoyancy versus sinking rate analyses
+
+% weight of displaced volume: rho * 4/3 pi r^3
+% assume water density = 1000 kg/m3. Not technically correct due to
+% presence of hydrogels, but good enough
+
+% compute volume of all spheres
+volsy = 0.333*pi()*4*(sizearr/2000).^3;
+% density of spheres; convert weight to kg as well
+denspart = weightarr./(1000*volsy);
+% the delta rho calculation, using 1kg/L as reference for density of liquid
+deltarho = 1000-denspart;
+% computing the effective viscosity from the slope
+etaconv = 2.*deltarho'.*(sizearr/2000).^2*9.81./9;
+
+
+
+%% FIGURE t-series for pingpong with constant phi and slopes vs buoyancy for this data.
+
+
+%small spheres masking:
+masklid = [1:25];
+
+% plot reference line from nonlin fit. #33 is just the linear option
+% in this set
+indexchoice = 33;
+alphy = 1/fitexpyarr(indexchoice);
+
+
+figure(31)
+
+% show an overall family of pp ball data. color is stress
+subplot 311
+cmap = colormap(parula(length(unique(buoyarr(masklid)))));
+
+for i=1:1:length(masklid)
+    
+    indexer = find(unique(buoyarr(masklid))==buoyarr(masklid(i)));
+    
+    scatter(timearr(masklid(i),:),displarr(masklid(i),:), 'k','MarkerEdgeColor',cmap(indexer,:))
+    hold on
+    plot(timearr(masklid(i),:),displarr(masklid(i),:), 'k','Color',cmap(indexer,:))
+    plot(timearr(masklid(i),:),slopearr_nonlin(masklid(i),33)*timearr(masklid(i),:),'Color',cmap(indexer,:))
+
+    if ~isnan(errarr(masklid(i))) 
+  %      errorbar(timearr(masklid(i),:),displarr(masklid(i),:),errarr(masklid(i),:),'k')%,'Color',cmap(indexer,:))
+        fprintf('errorrrrrrrrrr %d\n', expy)
+    end
+        
+        
+
+    
+end
+
+box on
+xlabel('t [sec]')
+ylabel('\delta [mm]')
+text(1300,110,'(a)','FontSize',18)
+%xlim([0 2000])
+%ylim([0, 125])
+ax=gca;
+ax.FontSize = 14;
+hold off
+c = colorbar('EastOutside');
+c.Label.String = '\sigma_S [Pa]';
+clim([80,280]);
+
+%show collapse of the current small data set
+
+subplot 312
+
+for i=1:1:length(masklid) 
+    
+    indexer = find(unique(buoyarr(masklid))==buoyarr(masklid(i)));
+    
+    scatter(timearr(masklid(i),:),(displarr(masklid(i),:)./slopearr_nonlin(masklid(i),indexchoice)).^alphy, 'k','MarkerEdgeColor',cmap(indexer,:))
+    hold on
+
+    if ~isnan(errarr(masklid(i))) 
+        fprintf('errorrrrrrrrrr %d\n', expy)
+    end
+        
+        
+end
+
+plot([1,10000],[1,10000],'-.k')
+
+box on
+xlabel('t [sec]')
+ylabel(horzcat('(\delta/U)^{',num2str(alphy),'} [sec]'))
+ax=gca;
+ax.FontSize = 14;
+hold off
+%xlim([1 10000])
+%ylim([1 10000])
+set(gca,'Yscale','log')
+set(gca,'Xscale','log')
+
+text(4250,20,'(b)','FontSize',18)
+clim([0,250]);
+
+
+% display the stress dependence of the effective viscosity
+subplot 313
+
+%calculate error bars
+minerr = 1./slopearr_nonlin(masklid,33)-1./conf_lin(masklid,2,1);
+maxerr = 1./conf_lin(masklid,1,1)-1./slopearr_nonlin(masklid,33);
+hold on
+
+pos = strfind(typearr,'glass');                 
+masklid = find(~cellfun('isempty',pos));    
+%scatter(buoyarr(masklid),1./slopearr_nonlin(masklid,33), 90, buoyarr(masklid), '<','filled')
+scatter(buoyarr(masklid),1./slopearr_lin(masklid), 90, buoyarr(masklid), '<','filled')
+%errorbar(buoyarr(masklid),1./slopearr_nonlin(masklid,33),minerr,maxerr,'.k')
+
+pos = strfind(typearr,'steel');                 
+masklid = find(~cellfun('isempty',pos));  
+%scatter(buoyarr(masklid),1./slopearr_nonlin(masklid,33), 90, buoyarr(masklid), 's','filled')
+scatter(buoyarr(masklid),1./slopearr_lin(masklid), 90, buoyarr(masklid), 's','filled')
+
+%errorbar(buoyarr(masklid),1./slopearr_nonlin(masklid,33),minerr,maxerr,'.k')
+
+pos = strfind(typearr,'ppong');                 
+masklid = find(~cellfun('isempty',pos));    
+%scatter(buoyarr(masklid),1./slopearr_nonlin(masklid,33), 90, buoyarr(masklid), 'o','filled')
+scatter(buoyarr(masklid),1./slopearr_lin(masklid), 90, buoyarr(masklid), 'o','filled')
+%errorbar(buoyarr(masklid),1./slopearr_nonlin(masklid,33),minerr,maxerr,'.k')
+
+box on
+xlabel('\sigma_S [N/m^2]')
+ylabel('1/U [s/m]')
+text(235,60,'(c)','FontSize',18)
+set(gca,'Yscale','log')
+%ylim([.9,100]);
+%xlim([120,250]);
+ax=gca;
+ax.FontSize = 14;
+
+hold on
+xtmp = 50:1:275;
+plot(xtmp,8E3*exp(-xtmp./16),'-.k')
+hold off 
+
+print(horzcat(('small-overview'), num2str(0,2)), '-dpdf', '-bestfit')
+
+%% FIGURE for exp dependence on radius
+
+scatter(sizearr,bestexparr, 90, buoyarr, 'o','filled')
+
+box on
+xlabel('Particle diameter [mm]')
+ylabel('best fit \alpha')
+%text(235,60,'(c)','FontSize',18)
+set(gca,'Yscale','log')
+ylim([.4,1.5]);
+xlim([0,42]);
+ax=gca;
+ax.FontSize = 14;
+
+c = colorbar('EastOutside');
+c.Label.String = '\sigma_S [Pa]';
+clim([80,267]);
+
+print(horzcat(('small-sizedep'), num2str(lidchoice,2)), '-dpdf', '-bestfit')
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%% FIGURE 10 verify nonlinearity with lid 
+% (a) Time series for cases with lid plus (b) collapse 
+
+indexchoice = 23;
+
+lidchoice = 1;
+alphy = 1/fitexpyarr(indexchoice);
+
+% excluding the non-PPball
+masklid = find(lidonarr == lidchoice & sizearr' == 40);
+
+figure(10)
+
+subplot(2,2,[1 2])
+cmap = colormap(parula(length(unique(buoyarr(masklid)))));
+
+for i=1:1:length(masklid)
+    
+    indexer = find(unique(buoyarr(masklid))==buoyarr(masklid(i)));
+    
+
+    scatter(timearr(masklid(i),:),displarr(masklid(i),:), 'k','MarkerEdgeColor',cmap(indexer,:))
+    hold on
+    plot(timearr(masklid(i),:),displarr(masklid(i),:), 'k','Color',cmap(indexer,:))
+
+end
+
+box on
+xlabel('t [sec]')
+ylabel('\delta [mm]')
+xlim([0 4000])
+ylim([.01, 110])
+ax=gca;
+ax.FontSize = 14;
+hold off
+c = colorbar('EastOutside');
+c.Label.String = '\sigma_S [Pa]';
+clim([0,250]);
+text(3550,90,'(a)','FontSize',18)
+
+
+subplot 223
+
+for i=1:1:length(masklid) 
+    
+        indexer = find(unique(buoyarr(masklid))==buoyarr(masklid(i)));
+    
+
+    scatter(timearr(masklid(i),:),(displarr(masklid(i),:)./slopearr_nonlin(masklid(i),indexchoice)).^alphy, 'k','MarkerEdgeColor',cmap(indexer,:))
+    hold on
+    
+    %scatter(timearr(masklid(i),:),(1./slopearr(masklid(i)))*displarr(masklid(i),:).^alphy, 'k','MarkerEdgeColor',cmap(indexer,:))
+    %hold on
+    %plot(timearr(masklid(i),:),(1./slopearr(masklid(i)))*displarr(masklid(i),:).^alphy, 'k','Color',cmap(indexer,:))
+
+    if ~isnan(errarr(masklid(i))) 
+  %      errorbar(timearr(masklid(i),:),(1./slopearr(masklid(i)))*displarr(masklid(i),:).^alphy,errarr(masklid(i),:),'k')%,'Color',cmap(indexer,:))
+        fprintf('errorrrrrrrrrr %d\n', expy)
+    end
+        
+        
+end
+
+plot([1,20000],0.8*[1,20000],'-.k')
+
+box on
+xlabel('t [sec]')
+ylabel(horzcat('\delta^{',num2str(alphy,3),'}/\Theta [arb. unit]'))
+ax=gca;
+ax.FontSize = 14;
+hold off
+
+clim([0,250])
+xlim([5 20000])
+%ylim([1, 2E6])
+set(gca,'Yscale','log')
+set(gca,'Xscale','log')
+
+text(5000,5,'(b)','FontSize',18)
+yticks([1,10,100,1000,10000,100000]);
+%yticklabels('10^0', '10^1', '10^2', '10^3', '10^4', '10^5')
+
+subplot 224
+
+% plot lid case eta_eff
+% we can apply the eta conversion factor for a fair comparison with the units
+% in Fig 3. However, that doesn't make much sense as the relevant
+% prefactors were also raised to a fractional power
+% scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
+
+% plotting 1/prefactor 
+scatter(buoyarr(masklid),1./(slopearr(masklid).^(1/alphy)), 90, buoyarr(masklid), 'o','filled')
+
+
+hold on
+
+box on
+xlabel('\sigma_S [N/m^2]')
+ylabel('1/\Theta [arb. unit]')
+text(230,60,'(c)','FontSize',18)
+set(gca,'Yscale','log')
+ylim([1,100]);
+xlim([130,250]);
+ax=gca;
+ax.FontSize = 14;
+
+% plot reference line from earlier, same hydrogel sample
+xtmp = 1:1:250;
+
+% when the etaconv factor is omitted and Theta is used, this function fits
+% best
+plot(xtmp,7E3*exp(-xtmp./28),'-.k')
+hold off
+
+%save
+print('10-checknl', '-dpdf', '-bestfit')
+
+%% Figure 11 v chart
+
+% get data from previous experiments: 244 experiments
+load("bestexparr_combined.mat")
+
+% combine with current data = 57 experiments
+bestexparrall = [bestexparr_combined; bestexparr;];
+
+figure(78)
+
+x = [ones(1,256)]; % 2*ones(1,12) 3*ones(1,55)];
+y1 = bestexparrall(1:256);
+y2 = bestexparrall(244:256);
+y3 = bestexparrall(257:end);
+%y = [y1 y2 y3];
+violinplot(1,y1)
+hold on
+scatter(1,mean(y1),'ok','filled')
+errorbar(1,mean(y1),std(y1),'k');
+
+violinplot(2,y2)
+scatter(2,mean(y2),'ok','filled')
+errorbar(2,mean(y2),std(y2),'k');
+violinplot(3,y3)
+scatter(3,mean(y3),'ok','filled')
+errorbar(3,mean(y3),std(y3),'k');
+
+plot([0,4],[.5,.5],'-.k')
+plot([0,4],[1,1],'-.k')
+
+xlim([.5,3.5])
+
+xticks([1,2,3])
+xticklabels({'Rigid','Resting','Free'})
+ylabel('\alpha','FontSize',18)
+
+ax = gca;
+ax.FontSize = 14;
+
+hold off
+box on
+
+% save
+print('exponent-lid-stats', '-depsc','-r600')
+print('exponent-lid-stats', '-dpdf', '-bestfit')
+
+%% Figure 12 Mesh data
+
+fnames = dir('data_mesh/*.dat');
+
+numfiles = length(fnames);
+
+figure(31415)
+
+for i=1:numfiles
+    
+    readfile = char(strcat(fnames(i).folder,'/',fnames(i).name));
+    tmp = readmatrix(readfile);
+    
+    displacement = tmp(:,2);
+    offset = displacement(1);
+    n_datapoints = length(displacement);
+    timearry = tmp(:,1);
+    errory = tmp(:,4);
+
+    if mod(i,2)
+        errorbar(timearry,(displacement-offset),errory,'.k')
+        hold on
+        scatter(timearry,(displacement-offset),'^k')
+    else
+        errorbar(timearry,(displacement-offset),errory,'.b')
+        hold on
+        scatter(timearry,(displacement-offset),'ob')
+    end
+   
+end
+
+plot([0,140],[0,90],'-.k')
+
+box on
+xlabel('t [sec]')
+ylabel('\delta [mm]')
+%text(3250,.015,'(b)','FontSize',18)
+%set(gca,'Yscale','log')
+%set(gca,'Xscale','log')
+xlim([0 140])
+ylim([0, 90])
+ax=gca;
+ax.FontSize = 14;
+hold off
+
+%save
+print('mesh-example', '-dpdf', '-bestfit')
+
+%% FIGURE 13 Sinking towards a liquid layer - Fluid boundary at bottom  
+
+figure(3)
+
+pix_to_mm = 40/733;
+
+fnames = dir('data_tommaso/sinking_with_liquid/*.dat');
+numfiles = length(fnames);
+interval = [5.0, 5.0, 10.0];
+etas = [0.3, 0.3, 0.055];
+colors = ["#0072BD","#EDB120","#77AC30"];
+
+subplot 211
+
+for i=1:numfiles
+    
+    readfile = char(strcat(fnames(i).folder,'/',fnames(i).name));
+    tmp = readmatrix(readfile);
+    
+    displacement = tmp(:,1);
+    offset = displacement(1);
+    n_datapoints = length(displacement);
+    timearry = linspace(0, (n_datapoints - 1)*(interval(i)), n_datapoints);
+
+    scatter(timearry,(displacement-offset)*pix_to_mm, "MarkerEdgeColor",colors(i))
+    hold on
+    plot(timearry,displacement)
+   
+end
+
+box on
+xlabel('t [sec]')
+ylabel('\delta [mm]')
+%text(3250,.015,'(b)','FontSize',18)
+%set(gca,'Yscale','log')
+%set(gca,'Xscale','log')
+xlim([0 2000])
+ylim([0, 150])
+ax=gca;
+ax.FontSize = 14;
+hold off
+
+text(1800,30,'(a)','FontSize',14)
+
+subplot 212
+
+for i=1:numfiles
+    
+    readfile = char(strcat(fnames(numfiles - i + 1).folder,'/',fnames(numfiles - i + 1).name));
+    tmp = readmatrix(readfile);
+    
+    displacement = tmp(:,1);
+    offset = displacement(1);
+    n_datapoints = length(displacement);
+    timearry = linspace(0, (n_datapoints - 1)*(interval(numfiles - i + 1)), n_datapoints);
+
+    scatter(timearry,(displacement-offset)*pix_to_mm/etas(numfiles - i + 1), "MarkerEdgeColor", colors(numfiles - i + 1))
+    hold on
+        
+end
+
+plot([1,2000],[1,2000],'-.k')
+
+box on
+%plot([10,3000],[10,3000],'-.k')
+xlabel('t [sec]')
+ylabel(horzcat('\delta/U [sec]'))
+%text(3250,500,'(c)','FontSize',18)
+ax=gca;
+ax.FontSize = 14;
+hold off
+xlim([0 2000])
+ylim([0, 3000])
+%set(gca,'Yscale','log')
+%set(gca,'Xscale','log')
+
+text(1800,500,'(b)','FontSize',14)
+
+
+%save
+print('9-sinking with layer', '-dpdf', '-bestfit')
+
+%% FIGURE 14 Visualization of the surface flow
+% 
+% just sample images from typical experiments
+
+
+%%%%%%%%%%%%%%%%%%%%%% END OF PAPER PICTURES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%% START OF SOME USEFUL SUPPLEMENTARY PICTURES %%%%%%%%%%%%%%%%%%%%%
+
+%% hydrogel level vs density
+
+file_name = 'data_tommaso/rising_hydrogel/data.dat';
+
+masses = [];
+height_hydro = [];
+height_water = [];
+normalized_height = [];
+volume = [];
+density = [];
+
+% Open the file and read the lines
+fid = fopen(file_name, 'r');
+lines = textscan(fid, '%s', 'Delimiter', '\n');
+lines = lines{1};
+fclose(fid);
+
+% Remove the header line
+lines(1) = [];
+
+% Process each line
+for count = 1:length(lines)
+    obs = str2double(strsplit(lines{count}));
+    
+    masses(count) = obs(1);
+    height_hydro(count) = obs(2);
+    height_water(count) = obs(3);
+    volume(count) = obs(4);
+    
+    normalized_height(count) = height_hydro(count) / height_water(count);
+    density(count) = masses(count) / volume(count);
+end
+
+% Create the figure and plot
+figure;
+hold on;
+
+box on
+
+ylabel('h_h / h_w');
+xlabel('\rho [g/L]');
+xlim([0.5 3.5])
+ylim([-0.1, 1.1])
+ax=gca;
+ax.FontSize = 14;
+
+% Generate and plot the theoretical line
+x1 = linspace(0.5, 3, 100);
+y1 = 0.34 * x1;
+plot(x1, y1, 'g--');
+
+% Plot the data
+plot(density, normalized_height, 'k+');
+
+% Add horizontal and vertical lines
+yline(1, 'r--');
+xline(2.95, 'b');
+
+hold off;
+
+% save
+print('level-hydrogel', '-depsc','-r600')
+print('level-hydrogel', '-dpdf', '-bestfit')
+
+%%%%% END OF SUPPL. PICTURES %%%%
+
+%% Fig XX Comparison with old data %%%%%%
+
+
+
+figure(1)
+
+subplot 121
+
+% first show the data from intruders moving towards rigid boundary
+plot(1:256,bestexparrall(1:256), 'bo')
+hold on
+scatter(244:256,bestexparrall(244:256), 'bo', 'Fill')% from the current new data
+
+% then show the current data: sphere rising towards free surface
+plot(257:length(bestexparrall),bestexparrall(257:end), 'r>')
+hold off
+
+xlabel('Experiment #')
+ylabel('best \alpha [-]')
+legend('Rigid base','Floating lid', 'Free')
+ylim([.1,1.5]);
+xlim([0,312]);
+
+% represent the same data in a histogram
+subplot 122
+
+binny = bexpy:3*expyr:eexpy;
+
+histogram(bestexparrall(1:244),binny) % previous data
+hold on
+histogram(bestexparrall(245:256),binny) % rising towards floating lid
+histogram(bestexparrall(257:end),binny) % rising towards free surface
+
+xlabel('\alpha')
+ylabel('Counts')
+
+hold off
+
+% save
+print('exponent-lid', '-depsc','-r600')
+print('exponent-lid', '-dpdf', '-bestfit')
+
+% for just the rising data:
+% trend is clearly with peak around 1, but sigma is large. 
+% what can be included is the data from the first paper and the second
+% paper: those have clear peaks around 0.5 (but also broad).
+
+%% Data export for MIGUEL ANGEL HERRADA GUTIERREZ <herrada@us.es>
+
+% pick the index choice that corresponds to the linear case in power law
+% fit
+indexchoice = 33;
+
+% define big array with columns for properties and rows for diet. 
+totaldata = [sizearr,slopearr_nonlin(:,indexchoice),denspart'];
+
+
+% write the data from one line above to a text file, to be read in SAS etc.
+writematrix(totaldata,'terminal_velocities.txt')

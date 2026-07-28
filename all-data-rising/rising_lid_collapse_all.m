@@ -238,8 +238,6 @@ end
 
 % compute volume of all spheres
 volsy = 0.333*pi()*4*(sizearr/2000).^3;
-% weight of displaced volume
-wdisplvol = 1000*volsy;
 % density of spheres; convert weight to kg as well
 denspart = weightarr./(1000*volsy');
 % the delta rho calculation, using 1kg/L as reference for density of liquid
@@ -248,6 +246,57 @@ deltarho = 1000-denspart;
 etaconv = 2.*deltarho'.*(sizearr/2000).^2*9.81./9;
 
 %% FIGURE 1 is a picture / description of the experiments
+
+%one subpanel is the interface position. read all three measurement files
+
+% requires import of a separate data file, with manual readings of the
+% height of the packing vs amount of hydrogels added.
+tmp = importdata('data_interface\interface1.dat');
+
+tmpdata = tmp.data;
+tmpstring = tmp.textdata;
+tmpstring = tmpstring{1};
+
+figure(57)
+
+scatter(tmpdata(:,1),tmpdata(:,2),tmpdata(:,2)*0+100,'bo','Fill')
+hold on
+errorbar(tmpdata(:,1),tmpdata(:,2),tmpdata(:,3),'o',"MarkerSize",2,...
+    "MarkerEdgeColor","blue","Color","black")
+
+tmp = importdata('data_interface\interface2.dat');
+tmpdata = tmp.data;
+tmpstring = tmp.textdata;
+tmpstring = tmpstring{1};
+scatter(tmpdata(:,1),tmpdata(:,2),tmpdata(:,2)*0+100,'r^','Fill')
+errorbar(tmpdata(:,1),tmpdata(:,2),tmpdata(:,3),'^',"MarkerSize",2,...
+    "MarkerEdgeColor","red","Color","black")
+
+tmp = importdata('data_interface\interface3.dat');
+tmpdata = tmp.data;
+tmpstring = tmp.textdata;
+tmpstring = tmpstring{1};
+scatter(tmpdata(:,1),tmpdata(:,2),tmpdata(:,2)*0+100,'g>','Fill')
+errorbar(tmpdata(:,1),tmpdata(:,2),tmpdata(:,3),'>',"MarkerSize",2,...
+    "MarkerEdgeColor","green","Color","black")
+
+plot([0,7.5],[165,165],'-.k')
+plot([0,5.2],[0,165],':k')
+
+xlim([0,7.5])
+ylim([0,175])
+xlabel('\rho [g/L]')
+ylabel('L [mm]')
+box on
+text(6,25,'(c)','FontSize',28)
+
+ax=gca;
+ax.FontSize = 30;
+hold off
+
+% save
+print('1-figintf-new', '-dpdf', "-bestfit")
+
 
 %% FIGURE 2 Single linear and non-linear to introduce results.
 
@@ -456,7 +505,7 @@ ylim([5 10000])
 set(gca,'Yscale','log')
 set(gca,'Xscale','log')
 
-text(3250,20,'(b)','FontSize',18)
+text(4250,20,'(b)','FontSize',18)
 clim([0,250]);
 
 
@@ -464,27 +513,35 @@ clim([0,250]);
 subplot 313
 
 % masklid has the selection as chosen above
-minerr = etaconv(masklid)./slopearr(masklid)-etaconv(masklid)./conf_lin(masklid,2,1);
-maxerr = etaconv(masklid)./conf_lin(masklid,1,1)-etaconv(masklid)./slopearr(masklid);
+% minerr = etaconv(masklid)./slopearr(masklid)-etaconv(masklid)./conf_lin(masklid,2,1);
+% maxerr = etaconv(masklid)./conf_lin(masklid,1,1)-etaconv(masklid)./slopearr(masklid);
+% 
+% errorbar(buoyarr(masklid),etaconv(masklid)./slopearr(masklid),minerr,maxerr,'ok')
+% hold on
+% scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
+% errorbar(buoyarr(masklid),etaconv(masklid)./slopearr(masklid),minerr,maxerr,'.k')
 
-errorbar(buoyarr(masklid),etaconv(masklid)./slopearr(masklid),minerr,maxerr,'ok')
+% do not convert to viscosity here yet
+minerr = 1./slopearr_nonlin(masklid,33)-1./conf_lin(masklid,2,1);
+maxerr = 1./conf_lin(masklid,1,1)-1./slopearr_nonlin(masklid,33);
+errorbar(buoyarr(masklid),1./slopearr_nonlin(masklid,33),minerr,maxerr,'ok')
 hold on
-scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
-errorbar(buoyarr(masklid),etaconv(masklid)./slopearr(masklid),minerr,maxerr,'.k')
+scatter(buoyarr(masklid),1./slopearr_nonlin(masklid,33), 90, buoyarr(masklid), 'o','filled')
+errorbar(buoyarr(masklid),1./slopearr_nonlin(masklid,33),minerr,maxerr,'.k')
 
 box on
 xlabel('\sigma_S [N/m^2]')
-ylabel('\eta_{\rm eff} [Pa\cdot s]')
+ylabel('1/U [s/m]')
 text(235,60,'(c)','FontSize',18)
 set(gca,'Yscale','log')
-ylim([.5,100]);
+ylim([.9,100]);
 xlim([120,250]);
 ax=gca;
 ax.FontSize = 14;
 
 hold on
 xtmp = 10:1:250;
-plot(xtmp,7E3*exp(-xtmp./27),'-.k')
+plot(xtmp,9E3*exp(-xtmp./27),'-.k')
 hold off 
 
 print(horzcat(('3-dense_ex'), num2str(lidchoice,2)), '-dpdf', '-bestfit')
@@ -492,7 +549,10 @@ print(horzcat(('3-dense_ex'), num2str(lidchoice,2)), '-dpdf', '-bestfit')
 %% Fig 4(a) Collapse for all pingpong ball data (6.35,6.25,6) 4(b) Slopes for all ping pong ball data
 
 % excluding the non-PPball
-masklid = find(lidonarr == lidchoice & sizearr' == 40);
+masklid = find(lidonarr == 0 & sizearr' == 40);
+
+indexchoice = 33;
+alphy = 1/fitexpyarr(indexchoice);
 
 cmap = colormap(parula(length(unique(buoyarr(masklid)))));
 
@@ -541,13 +601,13 @@ clim([0,250]);
 
 % show exponential behavior
 subplot 212
-scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
+scatter(buoyarr(masklid),1./slopearr_nonlin(masklid,33), 90, buoyarr(masklid), 'o','filled')
 
 hold on
 
 box on
 xlabel('\sigma_S [N/m^2]')
-ylabel('\eta_{\rm eff} [Pa\cdot s]')
+ylabel('1/U [s/m]')
 text(225,30,'(b)','FontSize',18)
 set(gca,'Yscale','log')
 ylim([.01,100]);
@@ -559,9 +619,9 @@ ax.FontSize = 14;
 % this concerns three different samples (6.35, 6.25, 6.0 g/L) so different
 % slopes are expected
 xtmp = 10:1:250;
-plot(xtmp,7E3*exp(-xtmp./27),'-.k')
-plot(xtmp,3E3*exp(-xtmp./17),'-.k')
-plot(xtmp,3E1*exp(-xtmp./12),'-.k')
+plot(xtmp,8E3*exp(-xtmp./27),'-.k')
+plot(xtmp,5E3*exp(-xtmp./17),'-.k')
+plot(xtmp,2E2*exp(-xtmp./11),'-.k')
 
 
 hold off
@@ -574,33 +634,112 @@ print(horzcat(('4-risingex_rescale'), num2str(lidchoice,2)), '-dpdf', '-bestfit'
 
 figure(11)
 
+subplot(2,2,[1 2])
+
 colormap parula
 
 % pp ball
 % excluding the non-PPball first
 masklid = find(lidonarr == 0 & sizearr' == 40);
-scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90,'ok')
+scatter(buoyarr(masklid),1./slopearr_nonlin(masklid,33), 90,'ok')
 hold on
 
 % Non-pp balls:
 % 25mm ball
 masklid = find(lidonarr == 0 & sizearr' == 25);
-scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90,'<g','filled')
+scatter(buoyarr(masklid),1./slopearr_nonlin(masklid,33), 90,'<g','filled')
 
 % 20mm
 masklid = find(lidonarr == 0 & sizearr' == 20);
-scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90,'sb','filled')
+scatter(buoyarr(masklid),1./slopearr_nonlin(masklid,33), 90,'sb','filled')
 
 % 19mm
 masklid = find(lidonarr == 0 & sizearr' < 20);
-scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90,'^k','filled')
+scatter(buoyarr(masklid),1./slopearr_nonlin(masklid,33), 90,'^k','filled')
 
 box on
 xlabel('\sigma_S [N/m^2]')
-ylabel('\eta_{\rm eff} [Pa\cdot s]')
-%text(3250,.015,'(b)','FontSize',18)
+ylabel('1/U [s/m]')
+text(220,40,'(a)','FontSize',18)
 set(gca,'Yscale','log')
-ylim([.002,2E2])
+ylim([.02,1E2])
+xlim([30,250])
+ax=gca;
+ax.FontSize = 14;
+
+
+hold on
+
+% plot three reference lines, slopes and offsets evaluated manually
+% this concerns three different samples (6.35, 6.25, 6.0 g/L) so different
+% slopes are expected
+xtmp = 10:1:250;
+plot(xtmp,7E3*exp(-xtmp./27),'-.k')
+plot(xtmp,3E3*exp(-xtmp./17),'-.k')
+plot(xtmp,3E1*exp(-xtmp./12),'-.k')
+
+% plot the relatoin for Stokes drag 1/(eta*U) = 6piR/mg
+subplot 223
+
+colormap parula
+
+
+% pp ball
+% excluding the non-PPball first
+masklid = find(lidonarr == 0 & sizearr' == 40);
+scatter(-9.81*(weightarr(masklid)'-wdisplvol(masklid))/1000,6*pi()*sizearr(masklid).*slopearr_nonlin(masklid,33), 90,'ok')
+hold on
+% Non-pp balls:
+% 25mm ball
+masklid = find(lidonarr == 0 & sizearr' == 25);
+scatter(-9.81*(weightarr(masklid)'-wdisplvol(masklid))/1000,6*pi()*sizearr(masklid).*slopearr_nonlin(masklid,33), 90,'<g','filled')
+% 20mm
+masklid = find(lidonarr == 0 & sizearr' == 20);
+scatter(-9.81*(weightarr(masklid)'-wdisplvol(masklid))/1000,6*pi()*sizearr(masklid).*slopearr_nonlin(masklid,33), 90,'sb','filled')
+% 19mm
+masklid = find(lidonarr == 0 & sizearr' < 20);
+scatter(-9.81*(weightarr(masklid)'-wdisplvol(masklid))/1000,6*pi()*sizearr(masklid).*slopearr_nonlin(masklid,33), 90,'^k','filled')
+
+box on
+
+xlabel('m_{eff}g [N]')
+ylabel('6\piRU [m^2/s]')
+text(0.25,20,'(b)','FontSize',18)
+set(gca,'Yscale','log')
+ylim([5,20000])
+xlim([0,0.31])
+ax=gca;
+ax.FontSize = 14;
+
+
+hold off
+
+% show the viscosity rescaling
+subplot 224
+
+colormap parula
+% pp ball
+% excluding the non-PPball first
+masklid = find(lidonarr == 0 & sizearr' == 40);
+scatter(buoyarr(masklid),etaconv(masklid)./slopearr_nonlin(masklid,33), 90,'ok')
+hold on
+% Non-pp balls:
+% 25mm ball
+masklid = find(lidonarr == 0 & sizearr' == 25);
+scatter(buoyarr(masklid),etaconv(masklid)./slopearr_nonlin(masklid,33), 90,'<g','filled')
+% 20mm
+masklid = find(lidonarr == 0 & sizearr' == 20);
+scatter(buoyarr(masklid),etaconv(masklid)./slopearr_nonlin(masklid,33), 90,'sb','filled')
+% 19mm
+masklid = find(lidonarr == 0 & sizearr' < 20);
+scatter(buoyarr(masklid),etaconv(masklid)./slopearr_nonlin(masklid,33), 90,'^k','filled')
+
+box on
+xlabel('\sigma_S [N/m^2]')
+ylabel('\eta_{\rm eff} [Pas]')
+text(200,40,'(c)','FontSize',18)
+set(gca,'Yscale','log')
+ylim([.006,1E2])
 xlim([30,250])
 ax=gca;
 ax.FontSize = 14;
@@ -928,7 +1067,7 @@ plot([1,20000],0.8*[1,20000],'-.k')
 
 box on
 xlabel('t [sec]')
-ylabel(horzcat('(\delta/\eta_{eff})^{',num2str(alphy,3),'} [A.U.]'))
+ylabel(horzcat('\delta^{',num2str(alphy,3),'}/\Theta [arb. unit]'))
 ax=gca;
 ax.FontSize = 14;
 hold off
@@ -952,17 +1091,17 @@ subplot 224
 % scatter(buoyarr(masklid),etaconv(masklid)./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
 
 % plotting 1/prefactor 
-scatter(buoyarr(masklid),1./slopearr(masklid), 90, buoyarr(masklid), 'o','filled')
+scatter(buoyarr(masklid),1./(slopearr(masklid).^(1/alphy)), 90, buoyarr(masklid), 'o','filled')
 
 
 hold on
 
 box on
 xlabel('\sigma_S [N/m^2]')
-ylabel('\eta_{\rm eff} [Pa\cdot s]')
-text(230,100,'(c)','FontSize',18)
+ylabel('1/\Theta [arb. unit]')
+text(230,60,'(c)','FontSize',18)
 set(gca,'Yscale','log')
-ylim([1,250]);
+ylim([1,100]);
 xlim([130,250]);
 ax=gca;
 ax.FontSize = 14;
@@ -970,11 +1109,9 @@ ax.FontSize = 14;
 % plot reference line from earlier, same hydrogel sample
 xtmp = 1:1:250;
 
-% the reference line for the etaconv option
-% plot(xtmp,7E3*exp(-xtmp./27),'-.k')
-
-% when the etaconv factor is omitted, this function fits better
-plot(xtmp,6E4*exp(-xtmp./23),'-.k')
+% when the etaconv factor is omitted and Theta is used, this function fits
+% best
+plot(xtmp,7E3*exp(-xtmp./28),'-.k')
 hold off
 
 %save
@@ -1013,7 +1150,7 @@ plot([0,4],[1,1],'-.k')
 xlim([.5,3.5])
 
 xticks([1,2,3])
-xticklabels({'Rigid','Floating','Free'})
+xticklabels({'Rigid','Resting','Free'})
 ylabel('\alpha','FontSize',18)
 
 ax = gca;
@@ -1277,3 +1414,15 @@ print('exponent-lid', '-dpdf', '-bestfit')
 % what can be included is the data from the first paper and the second
 % paper: those have clear peaks around 0.5 (but also broad).
 
+%% Data export for MIGUEL ANGEL HERRADA GUTIERREZ <herrada@us.es>
+
+% pick the index choice that corresponds to the linear case in power law
+% fit
+indexchoice = 33;
+
+% define big array with columns for properties and rows for diet. 
+totaldata = [sizearr,slopearr_nonlin(:,indexchoice),denspart'];
+
+
+% write the data from one line above to a text file, to be read in SAS etc.
+writematrix(totaldata,'terminal_velocities.txt')
