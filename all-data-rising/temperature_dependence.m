@@ -1,3 +1,10 @@
+%% Description
+
+% This code accompanies the manuscript at https://arxiv.org/abs/2507.03964
+% Authors: Tom Mullin, Tommaso Pettinari, Joshua Dijksman
+
+% This script generates (panels for) figure 14, regarding the temperature
+% dependence of the intruder speed.
 
 %% some details regarding conversions etc 
 
@@ -71,11 +78,11 @@ for i=1:numfiles
     
    
     lengarr(i) = datl(1);
-    timearr(i,1:datl) = tmpdata(:,1);
-    displarr(i,1:datl) = tmpdata(:,2);
+    timearr(i,1:lengarr(i)) = tmpdata(:,1);
+    displarr(i,1:lengarr(i)) = tmpdata(:,2);
 
     if contains(tmpstring, 'err') % if there is an error estimate, it will be in the third column.
-        errarr(i,1:datl(1)) = tmpdata(:,3);
+        errarr(i,1:lengarr(i)) = tmpdata(:,3);
     end
     
     %%%%%%%%%%%% we first assume square root behavior:
@@ -149,9 +156,8 @@ close all
 T = readtable('data_tempdep\watervisc.xlsx'); 
 
 
-%% FIGURE WITH TEMP DEPENDENT VISCOSITY DATA
-
-% buoyancy force comes from the weight of displaced volume minus the weight
+%% buoyancy force 
+% comes from the weight of displaced volume minus the weight
 % from intruder
 
 weightarr = NaN(1,numfiles);
@@ -176,7 +182,7 @@ for i=1:numfiles
 end
 
 
-%% plot stress dependence of buoyancy speed
+%% Figure 14 plot stress dependence of buoyancy speed
 
 figure(5)
 
